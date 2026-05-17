@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+
+    // ES2020 = the version of JavaScript TypeScript compiles down to
+    // Supports modern features like async/await, optional chaining
+    "target": "ES2020",
+
+    // commonjs = how modules are shared between files (require/module.exports style)
+    // Matches Node.js which is what runs our tests
+    "module": "commonjs",
+
+    // node = how TypeScript finds files when you write import statements
+    // Follows the same rules Node.js uses to find files
+    "moduleResolution": "node",
+
+    // strict = turns on ALL strict type checks at once
+    // Catches mistakes like null errors before they happen at runtime
+    "strict": true,
+
+    // Lets you write: import something from 'some-library'
+    // Without this, CommonJS imports look ugly and need extra syntax
+    "esModuleInterop": true,
+
+    // Lets you import .json files directly in TypeScript files
+    "resolveJsonModule": true,
+
+    // The starting point TypeScript uses to resolve your import paths
+    "baseUrl": "."
+  },
+
+  // Tell TypeScript to look at ALL .ts files in this project
+  "include": ["**/*.ts"],
+
+  // Tell TypeScript to ignore node_modules — those have their own types already
+  "exclude": ["node_modules"]
+}

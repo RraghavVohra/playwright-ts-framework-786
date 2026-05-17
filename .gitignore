@@ -1,0 +1,13 @@
+# auth.json stores your live login session (cookies, localStorage tokens)
+# If someone gets this file they can log in as you — NEVER commit it
+auth.json
+
+# .env stores your passwords and credentials — NEVER commit this
+.env
+
+# node_modules is installed via npm install — no need to commit 300MB of libraries
+node_modules/
+
+# Playwright generates these folders when tests run — not source code
+test-results/
+playwright-report/
