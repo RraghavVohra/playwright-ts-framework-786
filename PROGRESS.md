@@ -177,3 +177,231 @@
 ---
 
 *Last updated: Session 1 — 2026-05-17*
+
+---
+
+## Session 2 — Document Library Feature (Page Object — Locators)
+
+### What Was Built
+
+#### 1. New Page Object skeleton (`pages/DocumentLibraryPage.ts`)
+
+Started building the Document Library page object, ported from the Java project (`playwright-java-learning/src/main/java/pageObjects/DocumentLibraryPage.java`).
+
+**Step completed this session: Locators only** — the class skeleton and full constructor are written. Methods come next session.
+
+**Locator groups defined:**
+| Group | Locators |
+|---|---|
+| Navigation | `communicationTab`, `documentLibraryLink`, `actionsButton` |
+| Actions menu | `uploadMenuOption`, `accessMenuOption`, `updateHashtagMenuOption`, `deleteMenuOption` |
+| Upload form | `uploadButton`, `documentNameField`, `fileInput`, `thumbnailInput`, `croppingHandle`, `applyButton`, `descriptionField` |
+| Document options | `documentOptionTwo`, `documentOptionThree`, `downloadableToggle` |
+| Hashtag | `hashtagField`, `hashtagSuggestion` |
+| Search & listing | `searchBox`, `firstDocumentNameElement`, `noRecordsElement` |
+| Delete flow | `okButton`, `dialogBox` |
+| Checkbox & dynamic text | `checkboxOption`, `dynamicElement` |
+| Access control | `teamRadioButton`, `partnerCategoryButton`, `categoryLabel`, `updateAccessButton` |
+| Schedule | `scheduleCheckbox`, `scheduleTextbox`, `contentUpdateDate` |
+
+**Static file path constants defined** (`PDF_FILE`, `PNG_FILE`, `JPG_FILE`, `XLSX_FILE`, `MP4_FILE`, `GIF_FILE`, `THUMBNAIL_PNG`, `THUMBNAIL_GIF`, `THUMBNAIL_JPG`) — paths resolved relative to project root, no `Paths.get()` needed in TypeScript.
+
+---
+
+### Key Locator Decisions (Interview Reference)
+
+#### Decision 1 — `actionsButton` is environment-conditional
+```typescript
+this.actionsButton = ENV === 'dev'
+  ? page.locator("(//*[name()='svg'])[1]")
+  : page.locator("//div[contains(@class,'btn-group dropdown')]");
+```
+The Actions button renders as an SVG on dev and as a `btn-group dropdown` div on preprod/prod. Decision made once in the constructor — every method just calls `this.actionsButton.click()` with no if/else.
+
+**Interview talking point:** *"The same UI element renders differently across environments, so I made the locator environment-aware. The decision is made once in the constructor so every method stays clean."*
+
+---
+
+#### Decision 2 — `uploadMenuOption` uses `contains(@href)` not exact match
+```typescript
+this.uploadMenuOption = page.locator("//a[contains(@href,'sp-upload-document.php')]");
+```
+The Java project originally used an exact `@href` match which silently failed on preprod because preprod adds a `/manager/` path prefix to the href. `contains()` handles both environments.
+
+**Interview talking point:** *"I used `contains()` instead of an exact match because the href value differs between environments. The exact match was a silent bug — tests would wait 60 seconds and time out because the element was never found."*
+
+---
+
+#### Decision 3 — `hashtagSuggestion` is environment-conditional
+```typescript
+this.hashtagSuggestion = ENV === 'dev'
+  ? page.locator("//li[contains(@class,'ui-menu-item')]")
+  : page.locator("//li[contains(@class,'ui-menu-item') and text()='teaser']");
+```
+On dev, one `ui-menu-item` is enough. On preprod/prod the `<li>` has extra classes and can have multiple matches, so a text predicate pins it to the exact suggestion.
+
+**Interview talking point:** *"Same pattern as the actions button — the DOM differs per environment so the locator is decided once at construction time, not in every method that uses it."*
+
+---
+
+### Concepts Demonstrated (New This Session)
+
+| Concept | Where |
+|---|---|
+| Environment-conditional locators | `actionsButton`, `hashtagSuggestion` in constructor |
+| `contains()` for partial attribute matching | `uploadMenuOption` — guards against env path prefix differences |
+| Static readonly file path constants | `DocumentLibraryPage.PDF_FILE`, `PNG_FILE`, etc. |
+| Porting Java POM → TypeScript POM | Java locator methods → TS private fields assigned in constructor |
+
+---
+
+---
+
+## Session 2 (continued) — Document Library Feature (Methods, Fixtures, Test Class)
+
+### What Was Built
+
+#### 2. Methods added to `pages/DocumentLibraryPage.ts`
+
+All methods ported from `DocumentLibraryPage.java`, organised into sections:
+
+| Section | Methods |
+|---|---|
+| Navigation | `navigateToDocumentLibrary()`, `clickActionsButton()` |
+| Actions menu | `getDocumentLibraryOptions()`, `clickUploadOption()`, `clickAccessOption()`, `clickDeleteOption()` |
+| Upload form | `enterDocumentName()`, `uploadDocument()`, `uploadDocumentUsingPDF/PNG/JPG/XLSX/MP4/GIF()`, `attachThumbnail()`, `resizeCroppingArea()`, `clickApplyButton()`, `enterDescription()`, `clickUploadButton()` |
+| Document options | `clickDocumentOptionTwo()`, `clickDocumentOptionThree()`, `clickDownloadableToggle()` |
+| Hashtag | `enterHashtag()`, `selectHashtagSuggestion()` |
+| Validation | `getDocumentNameValidation()`, `getDescriptionValidation()`, `getFileInputValidation()` |
+| Search & listing | `enterSearchTerm()`, `getFirstDocumentName()`, `getSearchResultText()`, `getNoRecordsText()` |
+| Delete flow | `getDialogBoxText()`, `clickOkButton()` |
+| Checkbox | `clickCheckbox()`, `getDynamicText()` |
+| Access control | `clickTeamRadioButton()`, `clickPartnerCategoryButton()`, `clickCategoryLabel()`, `clickUpdateAccessButton()` |
+| Schedule | `clickScheduleCheckbox()`, `clickScheduleTextbox()` |
+| Calendar | `selectTodayInCalendar()`, `selectDateOfYourChoice()`, `selectCurrentActiveTime()`, `private selectActiveOrFirstTime()` |
+| Scroll helpers | `scrollToTop()`, `scrollToBottom()`, `scrollDownByFiveHundred()` |
+
+**Static file path constants updated** to match actual files in `test-data/` folder.
+
+---
+
+#### 3. `utils/fixtures.ts` updated
+
+- Added `import { DocumentLibraryPage }` 
+- Added `documentLibraryPage: DocumentLibraryPage` to the `MyFixtures` type
+- Registered the fixture so any test can declare `documentLibraryPage` as a parameter
+
+---
+
+#### 4. Test class created (`tests/e2e/document-library.spec.ts`)
+
+8 test cases ported from `DocumentLibraryTest.java`:
+
+| Test ID | Description | Type |
+|---|---|---|
+| TC_DL_01 | Navigate to Document Library screen — verify URL | Navigation |
+| TC_DL_03 | Actions menu shows 4 correct options in order | UI Verification |
+| TC_DL_04 | Clicking Upload navigates to upload screen | Navigation |
+| TC_DL_17 | Upload all mandatory fields (PDF) — success redirect | Happy Path / E2E |
+| TC_DL_18 | Missing document name shows HTML5 validation tooltip | Validation |
+| TC_DL_25 | Missing description shows HTML5 validation tooltip | Validation |
+| TC_DL_28 | Missing file attachment shows HTML5 validation tooltip | Validation |
+| TC_DL_37 | Search filters table — dynamic first document name | Functional |
+| TC_DL_38 | Delete without selection shows error dialog | Validation |
+| TC_DL_39 | Delete document and verify it disappears from search | Functional / E2E |
+| TC_DL_22 | Upload in PNG format | Happy Path |
+| TC_DL_22_1 | Upload in JPG format | Happy Path |
+| TC_DL_22_2 | Upload in CSV format | Happy Path |
+| TC_DL_22_3 | Upload in XLSX format | Happy Path |
+| TC_DL_22_4 | Upload in MP4 format — extended timeout 60s | Happy Path |
+| TC_DL_22_5 | Upload with GIF thumbnail | Happy Path |
+| TC_DL_22_6 | Upload with JPG thumbnail | Happy Path |
+| TC_DL_30 | Upload with document option radio buttons | Happy Path |
+| TC_DL_32 | Upload with downloadable toggle enabled | Happy Path |
+| TC_DL_34 | Upload with all fields + internal hashtag | Happy Path / E2E |
+| TC_DL_40 | Update access control — team, category, schedule | Functional / E2E |
+
+---
+
+### Key Method & Test Decisions (Interview Reference)
+
+#### Decision 4 — `resizeCroppingArea()` uses Playwright mouse API
+```typescript
+await this.page.mouse.move(x, y);
+await this.page.mouse.down();
+await this.page.mouse.move(x + 50, y + 50);
+await this.page.mouse.up();
+```
+Java Selenium used `Actions.clickAndHold → moveByOffset → release`. Playwright's `page.mouse` API is the direct equivalent. `boundingBox()` gives the element's screen coordinates so the drag starts from the centre of the handle.
+
+---
+
+#### Decision 5 — `getDocumentLibraryOptions()` reads 4 specific locators individually
+Avoids picking up links from the sidebar, profile dropdown, or other menus. Each locator is pinned by ID or href to the exact menu item — not by scraping all visible links on the page.
+
+---
+
+#### Decision 6 — Dynamic search in TC_DL_37 instead of hardcoded config value
+The Java project had `SEARCH_VALUE` hardcoded in config — it broke whenever that document didn't exist on the target server. Reading `getFirstDocumentName()` from the live listing makes the test self-contained and environment-agnostic.
+
+---
+
+#### Decision 7 — `domcontentloaded` vs `networkidle` — choosing the right load state
+- `networkidle` used when the Actions button needs to be fully interactive (TC_DL_38, TC_DL_39)
+- `domcontentloaded` used when we only need the DOM table rows to be present (TC_DL_37, TC_DL_40)
+- Preprod has background polling requests that prevent `networkidle` from ever resolving — using it indiscriminately causes 60s timeouts
+
+---
+
+#### Decision 8 — Capture document name before deletion in TC_DL_39
+Once a document is deleted, its row is gone from the DOM. The name is stored in a variable before the delete action so it can be used in the search assertion afterwards.
+
+---
+
+### Concepts Demonstrated (New This Session)
+
+| Concept | Where |
+|---|---|
+| `page.mouse` drag API | `resizeCroppingArea()` in page object |
+| `evaluate()` for HTML5 validation | `getDocumentNameValidation()`, `getDescriptionValidation()`, `getFileInputValidation()` |
+| `HTMLTextAreaElement` vs `HTMLInputElement` in evaluate | `getDescriptionValidation()` — textarea needs different cast |
+| Dynamic locator built at call time | `getSearchResultText(text)` |
+| `domcontentloaded` vs `networkidle` | TC_DL_37, TC_DL_38, TC_DL_39, TC_DL_40 |
+| Capture state before destructive action | TC_DL_39 — document name stored before delete |
+| Private helper method shared by multiple public methods | `selectActiveOrFirstTime()` |
+| `toEqual()` for full array comparison | TC_DL_03 — strict menu option verification |
+
+---
+
+### Current State
+
+- **Page Objects:** 2 (`PushNotificationPage`, `DocumentLibraryPage`)
+- **Test files:** 2 (`push-notification.spec.ts`, `document-library.spec.ts`)
+- **Test cases:** 34 total (13 push notification + 21 document library)
+- **Environments supported:** 3 (dev, preprod, prod)
+- **Auth strategy:** Session reuse via `storageState`
+
+---
+
+---
+
+### Key Pattern — Unique Document Names with `Date.now()`
+
+```typescript
+const uniqueName = `${DOCUMENT_NAME}_${Date.now()}`;
+```
+
+`Date.now()` returns the current timestamp in milliseconds. Every test run produces a different number, so the document name is always unique — no conflicts between runs.
+
+The base name prefix (`DOCUMENT_NAME`) is exported from `utils/config.ts` and controlled via `.env`:
+```
+DOCUMENT_NAME=AutoDoc
+```
+
+If not set in `.env`, it defaults to `'AutoDoc'`. This means the prefix can be changed per environment without touching any test code.
+
+**Interview talking point:** *"I use `Date.now()` to generate unique document names so tests never conflict with each other across runs. The prefix is configurable from `.env` — same pattern as the Java project's `doc.document.name` in config.properties."*
+
+---
+
+*Last updated: Session 2 — 2026-05-23*

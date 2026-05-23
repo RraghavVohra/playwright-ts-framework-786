@@ -27,3 +27,12 @@ export const PARTNER_CATEGORY_NAME = process.env.PARTNER_CATEGORY_NAME ?? 'Raj20
 
 // The custom link used in push notification tests
 export const CUSTOM_LINK = process.env.CUSTOM_LINK ?? 'https://www.google.com';
+
+// Base name prefix for document uploads in Document Library tests
+// Date.now() is appended in each test to make every name unique across runs
+// If not set in .env, defaults to 'AutoDoc'
+export const DOCUMENT_NAME = process.env.DOCUMENT_NAME ?? 'AutoDoc';
+
+// The hashtag text typed into the hashtag field in Document Library tests
+// Must match a hashtag that exists in the autocomplete on your target environment
+export const HASHTAG_TEXT = process.env.HASHTAG_TEXT ?? 'teaser';
