@@ -194,7 +194,9 @@ export class PushNotificationPage {
     const elements = await this.actionsMenuOptions.all();
     const texts: string[] = [];
     for (const el of elements) {
-      texts.push((await el.textContent())?.trim() ?? '');
+      if (await el.isVisible()) {
+        texts.push((await el.textContent())?.trim() ?? '');
+      }
     }
     return texts;
   }

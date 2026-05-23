@@ -237,6 +237,7 @@ test('TC_PN_19 - missing custom link URL shows validation error', async ({ pushN
   await pushNotificationPage.searchCategory('Raj2024');
   await pushNotificationPage.selectTargetCategory();
   await pushNotificationPage.clickBlankSpace();
+  await pushNotificationPage.uploadImage('test-data/Amsterdam.png');
 
   // Select Custom Link option but do NOT enter a URL
   await pushNotificationPage.clickCustomLinkOption();
