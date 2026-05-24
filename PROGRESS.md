@@ -405,3 +405,58 @@ If not set in `.env`, it defaults to `'AutoDoc'`. This means the prefix can be c
 ---
 
 *Last updated: Session 2 — 2026-05-23*
+
+---
+
+## Session 3 — Document Library Test Run & TC_DL_40 Fix
+
+### What Was Done
+
+#### 1. Ran Document Library tests (non-cropper subset)
+
+Identified and ran the 7 tests that do not involve the thumbnail cropper flow:
+TC_DL_01, TC_DL_03, TC_DL_04, TC_DL_37, TC_DL_38, TC_DL_39, TC_DL_40.
+
+All 7 passed.
+
+---
+
+#### 2. Fixed TC_DL_40 — Draft document locator
+
+**Problem:** `clickCheckbox()` picked the first document in the listing regardless of status. On preprod, top documents were "Syndicated" — access control can only be updated for "Draft" documents, so the flow failed.
+
+**Fix:** Added a new locator `draftDocumentCheckbox` in `DocumentLibraryPage.ts`:
+```typescript
+this.draftDocumentCheckbox = page.getByText('Draft', { exact: true })
+  .first()
+  .locator('xpath=ancestor::tr')
+  .locator('input[id="document_content"]');
+```
+Added `clickDraftDocumentCheckbox()` method. Updated TC_DL_40 to call it instead of `clickCheckbox()`.
+
+**Interview talking point:** *"I used `getByText` to find the Draft badge, then chained `ancestor::tr` to navigate up to the containing row, and targeted the checkbox within that row. The decision lives in the page object — the test just calls one method."*
+
+---
+
+### Concepts Demonstrated (New This Session)
+
+| Concept | Where |
+|---|---|
+| `getByText` + `ancestor::tr` XPath chaining | `draftDocumentCheckbox` locator |
+| Status-aware checkbox selection | TC_DL_40 — only selects Draft documents |
+| `--project=chromium --no-deps` to skip re-login | Running tests without setup project |
+| `--grep` to run a subset of tests by ID | `--grep "TC_DL_01\|TC_DL_03\|..."` |
+
+---
+
+### Current State
+
+- **Page Objects:** 2 (`PushNotificationPage`, `DocumentLibraryPage`)
+- **Test files:** 2 (`push-notification.spec.ts`, `document-library.spec.ts`)
+- **Test cases:** 34 total (13 push notification + 21 document library)
+- **Passing (non-cropper):** TC_DL_01, TC_DL_03, TC_DL_04, TC_DL_37, TC_DL_38, TC_DL_39, TC_DL_40
+- **Pending:** Cropper-dependent upload tests (TC_DL_17, 18, 22 series, 25, 28, 30, 32, 34)
+
+---
+
+*Last updated: Session 3 — 2026-05-24*

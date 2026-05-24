@@ -763,16 +763,19 @@ test.describe('Document Library', () => {
   // an error or redirect away unexpectedly. A toast or URL assertion could be
   // added once we confirm the exact success behaviour on the target environment.
   // ─────────────────────────────────────────────────────────────────────
-  test('TC_DL_40 - Update access control for a document', async ({ page, documentLibraryPage }) => {
+  test('TC_DL_40 - Update access control for a document without schedule', async ({ page, documentLibraryPage }) => {
     await page.waitForLoadState('domcontentloaded');
 
-    // Select the first document in the listing
-    await documentLibraryPage.clickCheckbox();
+    // Select a Draft document — access update only works for Draft status documents
+    await documentLibraryPage.clickDraftDocumentCheckbox();
     const documentName = await documentLibraryPage.getDynamicText();
     console.log(`Updating access for: ${documentName}`);
 
     await documentLibraryPage.clickActionsButton();
     await documentLibraryPage.clickAccessOption();
+
+    // Schedule checkbox is off by default — clicking it here keeps it disabled for this flow
+    await documentLibraryPage.clickScheduleCheckbox();
 
     // Set access to Team and pick a partner category
     await documentLibraryPage.clickTeamRadioButton();
@@ -780,12 +783,57 @@ test.describe('Document Library', () => {
     await documentLibraryPage.clickCategoryLabel();
     await documentLibraryPage.clickPartnerCategoryButton();  // close dropdown
 
-    // Enable scheduling — reveals the schedule textbox
+    await documentLibraryPage.clickUpdateAccessButton();
+  });
+
+
+  // ─────────────────────────────────────────────────────────────────────
+  // TC_DL_41 — Update access control for a document with schedule
+  // ─────────────────────────────────────────────────────────────────────
+  // TYPE: Functional / E2E
+  //
+  // What it verifies: same access update flow as TC_DL_40 but with the
+  // schedule checkbox left enabled (checked by default when form opens).
+  // A future date is selected dynamically — always tomorrow — so the test
+  // never uses a hardcoded or past date.
+  //
+  // Why tomorrow and not a fixed date?
+  // The picker disables past dates. A fixed date would eventually become
+  // a past date and break the test. Calculating tomorrow at runtime keeps
+  // the test valid on every run.
+  // ─────────────────────────────────────────────────────────────────────
+  test('TC_DL_41 - Update access control for a document with schedule', async ({ page, documentLibraryPage }) => {
+    await page.waitForLoadState('domcontentloaded');
+
+    // Select a Draft document — access update only works for Draft status documents
+    await documentLibraryPage.clickDraftDocumentCheckbox();
+    const documentName = await documentLibraryPage.getDynamicText();
+    console.log(`Updating access for: ${documentName}`);
+
+    await documentLibraryPage.clickActionsButton();
+    await documentLibraryPage.clickAccessOption();
+
+    // Schedule is checked by default — uncheck it first before selecting Team
     await documentLibraryPage.clickScheduleCheckbox();
 
-    // Open the datetime picker and select a time
+    // Set access to Team and pick a partner category
+    await documentLibraryPage.clickTeamRadioButton();
+    await documentLibraryPage.clickPartnerCategoryButton();  // open dropdown
+    await documentLibraryPage.clickCategoryLabel();
+    await documentLibraryPage.clickPartnerCategoryButton();  // close dropdown
+
+    // Re-check schedule — reveals the date field next to the checkbox
+    await documentLibraryPage.clickScheduleCheckbox();
+
+    // Pick tomorrow — always a valid future date, picker disables past dates
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
     await documentLibraryPage.clickScheduleTextbox();
-    await documentLibraryPage.selectCurrentActiveTime();
+    await documentLibraryPage.selectDateOfYourChoice(
+      tomorrow.getDate(),
+      tomorrow.getMonth() + 1,
+      tomorrow.getFullYear()
+    );
 
     await documentLibraryPage.clickUpdateAccessButton();
   });

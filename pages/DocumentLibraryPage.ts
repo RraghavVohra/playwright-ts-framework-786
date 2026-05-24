@@ -48,8 +48,9 @@ export class DocumentLibraryPage {
   private dialogBox: Locator;
 
   // Checkbox & dynamic text (used in delete / access tests)
-  private checkboxOption: Locator;
-  private dynamicElement: Locator;
+  private checkboxOption:        Locator;
+  private draftDocumentCheckbox: Locator;
+  private dynamicElement:        Locator;
 
   // Access control
   private teamRadioButton:     Locator;
@@ -99,7 +100,8 @@ export class DocumentLibraryPage {
 
     // Actions menu items
     // contains(@href) instead of exact match — preprod adds a path prefix (/manager/...)
-    this.uploadMenuOption        = page.locator("//a[contains(@href,'sp-upload-document.php')]");
+    // not(contains(@href,'document_id')) excludes row-level Edit buttons that share the same base URL
+    this.uploadMenuOption        = page.locator("//a[contains(@href,'sp-upload-document.php') and not(contains(@href,'document_id'))]");
     this.accessMenuOption        = page.locator("#add_synd");
     this.updateHashtagMenuOption = page.locator("#add_hastag");
     this.deleteMenuOption        = page.locator("#Delete3");
@@ -109,7 +111,7 @@ export class DocumentLibraryPage {
     this.documentNameField = page.locator("#document_name");
     this.fileInput         = page.locator("#document_file");
     this.thumbnailInput    = page.locator("#img_validate");
-    this.croppingHandle    = page.locator("//div[@class='imgareaselect-border4']");
+    this.croppingHandle    = page.locator("//div[contains(@class,'imgareaselect-border4')]");
     this.applyButton       = page.locator("//a[@class='btn yes yellow-gold pull-right']");
     this.descriptionField  = page.locator("//textarea[@class='form-control h150']");
 
@@ -131,7 +133,7 @@ export class DocumentLibraryPage {
     this.searchBox                = page.locator("//input[@type='search' and @placeholder='Search']");
     // First document name in the table — used to grab a real name before searching/deleting
     this.firstDocumentNameElement = page.locator("(//td[@class='wBreak d-none d-md-table-cell'])[1]");
-    this.noRecordsElement         = page.locator("//td[@class='dataTables_empty' and text()='No matching records found']");
+    this.noRecordsElement         = page.locator("//td[contains(@class,'dataTables_empty') and normalize-space()='No matching records found']");
 
     // Delete flow
     this.okButton  = page.locator("//button[@type='button' and @class='btn btn-primary bootbox-accept' and text()='OK']");
@@ -139,13 +141,19 @@ export class DocumentLibraryPage {
 
     // First checkbox in the listing and the dynamic text cell it unlocks
     this.checkboxOption = page.locator("(//input[@id='document_content'])[1]");
+    // Finds a row containing a 'Draft' badge and targets its checkbox
+    // Used in TC_DL_40 — access can only be updated for Draft documents
+    this.draftDocumentCheckbox = page.getByText('Draft', { exact: true })
+      .first()
+      .locator('xpath=ancestor::tr')
+      .locator('input[id="document_content"]');
     // This cell only shows cursor:no-drop style after a checkbox is selected
     this.dynamicElement = page.locator("(//td[@class='wBreak d-none d-md-table-cell' and @style='cursor: no-drop;'])[1]");
 
     // Access control
     this.teamRadioButton      = page.locator("#partners_option");
     this.partnerCategoryButton = page.locator("#btn_ptr_category");
-    this.categoryLabel         = page.locator("//label[@for='ms-opt-40']");
+    this.categoryLabel         = page.locator("//label[normalize-space()='Raj2024']");
     this.updateAccessButton    = page.locator("#synd_update_id");
 
     // Schedule
@@ -325,9 +333,9 @@ export class DocumentLibraryPage {
   }
 
   // Dynamic locator — built at call time with the exact text to match
-  // This way one method handles any search term, not just a hardcoded one
+  // getByRole('cell') avoids XPath string interpolation — safe for names with apostrophes or quotes
   async getSearchResultText(text: string): Promise<string> {
-    return await this.page.locator(`//td[normalize-space()='${text}']`).innerText();
+    return await this.page.getByRole('cell', { name: text, exact: true }).innerText();
   }
 
   async getNoRecordsText(): Promise<string> {
@@ -359,8 +367,13 @@ export class DocumentLibraryPage {
     await this.checkboxOption.click();
   }
 
+  async clickDraftDocumentCheckbox(): Promise<void> {
+    await this.draftDocumentCheckbox.first().click();
+  }
+
   // dynamicElement only appears (with cursor:no-drop style) after a checkbox is selected
   async getDynamicText(): Promise<string> {
+    await this.dynamicElement.waitFor({ state: 'visible' });
     return (await this.dynamicElement.innerText()).trim();
   }
 
@@ -378,6 +391,7 @@ export class DocumentLibraryPage {
   }
 
   async clickCategoryLabel(): Promise<void> {
+    await this.categoryLabel.waitFor({ state: 'visible' });
     await this.categoryLabel.click();
   }
 
@@ -440,22 +454,21 @@ export class DocumentLibraryPage {
   // Selects a specific date in the xdsoft calendar picker
   // month is 1-based (January = 1) but xdsoft stores months 0-based internally
   async selectDateOfYourChoice(day: number, month: number, year: number): Promise<void> {
-    await this.page.locator(
+    const picker = this.page.locator(
       "//div[contains(@class,'xdsoft_datetimepicker') and contains(@style,'display: block')]"
-    ).waitFor({ state: 'visible' });
+    );
+    await picker.waitFor({ state: 'visible' });
 
     // Year
-    await this.page.locator("//div[contains(@class,'xdsoft_label') and contains(@class,'xdsoft_year')]/span").click();
-    await this.page.locator(`//div[contains(@class,'xdsoft_yearselect')]//div[@data-value='${year}']`).click();
+    await picker.locator("div.xdsoft_label.xdsoft_year span").click();
+    await picker.locator(`div.xdsoft_yearselect div[data-value='${year}']`).click();
 
     // Month — subtract 1 because xdsoft uses 0-based month index
-    await this.page.locator("//div[contains(@class,'xdsoft_label') and contains(@class,'xdsoft_month')]/span").click();
-    await this.page.locator(`//div[contains(@class,'xdsoft_monthselect')]//div[@data-value='${month - 1}']`).click();
+    await picker.locator("div.xdsoft_label.xdsoft_month span").click();
+    await picker.locator(`div.xdsoft_monthselect div[data-value='${month - 1}']`).click();
 
     // Day — skips disabled dates (past dates)
-    await this.page.locator(
-      `//td[contains(@class,'xdsoft_date') and not(contains(@class,'xdsoft_disabled')) and @data-date='${day}']`
-    ).click();
+    await picker.locator(`td.xdsoft_date:not(.xdsoft_disabled)[data-date='${day}']`).click();
 
     await this.selectActiveOrFirstTime();
   }
