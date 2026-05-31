@@ -662,3 +662,91 @@ Also added `expect` to the import line in `DocumentLibraryPage.ts`.
 ---
 
 *Last updated: Session 6 — 2026-05-31*
+
+---
+
+## Session 7 — Auto-clean Allure Results & npm Scripts
+
+### What Was Done
+
+#### 1. Created `utils/global-setup.ts`
+
+Playwright's `globalSetup` hook runs **once, before any test starts** — even before the `setup` project that creates `auth.json`. Used it to delete `allure-results/` so every run starts with a clean slate.
+
+```typescript
+import fs from 'fs';
+import path from 'path';
+
+export default async function globalSetup() {
+  const resultsDir = path.join(process.cwd(), 'allure-results');
+  if (fs.existsSync(resultsDir)) {
+    fs.rmSync(resultsDir, { recursive: true, force: true });
+  }
+}
+```
+
+**Why `fs` and not a shell command?**
+`fs` is a Node.js built-in — no install needed, and it works on Windows, Linux, and Mac identically. A PowerShell `Remove-Item` or bash `rm -rf` in an npm script would break on the other OS. This approach works locally AND on GitHub Actions / Azure DevOps / Jenkins without any change.
+
+**Interview talking point:** *"I use Playwright's `globalSetup` hook to clean `allure-results/` before every run. It uses Node's built-in `fs` module so it's platform-agnostic — the same code works locally on Windows and on a Linux CI runner without any modification."*
+
+---
+
+#### 2. Wired `globalSetup` into `playwright.config.ts`
+
+```typescript
+globalSetup: './utils/global-setup',
+```
+
+**Execution order after this change:**
+```
+npx playwright test
+  → globalSetup runs  → deletes allure-results/
+  → setup project     → creates auth.json
+  → chromium project  → runs tests, writes fresh results to allure-results/
+```
+
+---
+
+#### 3. Added npm scripts to `package.json`
+
+```json
+"scripts": {
+  "test":   "npx playwright test",
+  "report": "allure generate allure-results --clean && allure open"
+}
+```
+
+**Usage:**
+```powershell
+npm test          # runs all tests (allure-results auto-cleaned first)
+npm run report    # generates HTML report and opens it in the browser
+```
+
+The `allure-results/` folder is NOT deleted after the run — it stays on disk until the next `npm test`. You still need to run `npm run report` manually after each run to generate and view the HTML report. It does not generate itself automatically.
+
+**Interview talking point:** *"I separated test execution from report generation intentionally. On CI you'd only run `npm test` — the raw results get archived as artifacts. Report generation is a local step for reviewing results, so it stays as a separate command."*
+
+---
+
+### Concepts Demonstrated (New This Session)
+
+| Concept | Where |
+|---|---|
+| `globalSetup` hook | `utils/global-setup.ts` + `playwright.config.ts` |
+| Node.js `fs` for cross-platform file ops | `global-setup.ts` — avoids shell-specific commands |
+| npm scripts for common commands | `package.json` — `test` and `report` scripts |
+
+---
+
+### Current State
+
+- **Page Objects:** 2 (`PushNotificationPage`, `DocumentLibraryPage`)
+- **Test files:** 2 (`push-notification.spec.ts`, `document-library.spec.ts`)
+- **Test cases:** 34 total
+- **Allure results:** auto-cleaned before every run via `globalSetup`
+- **Commands:** `npm test` to run, `npm run report` to view
+
+---
+
+*Last updated: Session 7 — 2026-05-31*

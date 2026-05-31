@@ -1,31 +1,56 @@
 name: Playwright Tests
+# WHEN to trigger this workflow
 on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+  # workflow_dispatch = manual trigger only
+  # You go to GitHub → Actions → Run workflow → click button
+  # Tests run ONLY when YOU decide — no automatic triggers
+   workflow_dispatch:
+
+# WHAT to run
 jobs:
   test:
+    # Maximum time this job can run before GitHub kills it
     timeout-minutes: 60
+    # Which machine to run on — GitHub's Ubuntu Linux server
     runs-on: ubuntu-latest
+    # LIST OF STEPS — executed top to bottom in order
     steps:
+    # Step 1 — Pull your code from GitHub onto the runner machine
     - uses: actions/checkout@v5
+    # Step 2 — Install Node.js version 24 on the runner machine
     - uses: actions/setup-node@v5
       with:
         node-version: 24
+
+    # Step 3 — Install all packages from package.json
+    # npm ci = clean install — faster and more reliable than npm install in CI
     - name: Install dependencies
       run: npm ci
+    # Step 4 — Install Playwright browsers (Chromium, Firefox, WebKit)
+    # --with-deps = also installs OS dependencies needed by browsers
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
-      
+
+    # Step 5 — Login to Microsoft Azure
+    # Uses AZURE_CREDENTIALS secret stored in GitHub → Settings → Secrets
+    # This authenticates GitHub Actions to use your Azure workspace  
     - name: Azure Login
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
+    # Step 6 — Run Playwright tests on Azure cloud
+    # PLAYWRIGHT_SERVICE_URL tells Playwright to use Azure cloud browsers
+    # --config = use Azure service config instead of local config
+    # --workers=4 = run 4 tests in parallel on Azure cloud
+    # vars.PLAYWRIGHT_SERVICE_URL = URL stored in GitHub Variables
     - name: Run Playwright tests
       env:
          PLAYWRIGHT_SERVICE_URL : ${{ vars.PLAYWRIGHT_SERVICE_URL }}
       run: npx playwright test --config=playwright.service.config.ts --workers=4
+    # Step 7 — Upload test report as artifact to GitHub
+    # The if statement means-> upload report even if tests failed
+    # retention-days: 30 = report stays available for 30 days
+    # Download from GitHub → Actions → your run → Artifacts section
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:

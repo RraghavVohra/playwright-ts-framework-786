@@ -7,6 +7,9 @@ import { BASE_URL } from './utils/config';
 // defineConfig gives us TypeScript autocomplete and validation on every option
 export default defineConfig({
 
+  // Runs once before any test — cleans allure-results/ so each run starts fresh
+  globalSetup: './utils/global-setup',
+
   // Where Playwright looks for test files
   // We use tests/e2e so the old learning files in other folders are not picked up
   testDir: './tests/e2e',
