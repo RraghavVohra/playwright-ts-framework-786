@@ -750,3 +750,116 @@ The `allure-results/` folder is NOT deleted after the run — it stays on disk u
 ---
 
 *Last updated: Session 7 — 2026-05-31*
+
+---
+
+## Session 8 — GitHub Actions Workflow (Manual CI Control)
+
+### What Was Done
+
+#### 1. Updated `.github/workflows/playwright.yml` — manual trigger only
+
+Changed the workflow trigger to `workflow_dispatch` exclusively — no automatic triggers on push or pull request.
+
+```yaml
+on:
+  workflow_dispatch:
+```
+
+**Why:** Full manual control over when CI runs. Tests execute only when explicitly triggered via GitHub → Actions → "Run workflow" button. No accidental CI runs on every commit.
+
+**Interview talking point:** *"`workflow_dispatch` is the GitHub Actions trigger for manual runs. You go to the Actions tab, select the workflow, and click 'Run workflow'. Nothing runs automatically — you decide when to execute."*
+
+---
+
+#### 2. Workflow runs tests on Azure cloud via `playwright.service.config.ts`
+
+```yaml
+- name: Run Playwright tests
+  env:
+    PLAYWRIGHT_SERVICE_URL: ${{ vars.PLAYWRIGHT_SERVICE_URL }}
+  run: npx playwright test --config=playwright.service.config.ts --workers=4
+```
+
+- `PLAYWRIGHT_SERVICE_URL` is stored as a GitHub Variable (not a secret — not sensitive)
+- `AZURE_CREDENTIALS` is stored as a GitHub Secret — used by the `azure/login@v1` step to authenticate the runner to Azure
+- `--workers=4` runs 4 tests in parallel on Azure cloud browsers
+
+**Interview talking point:** *"Azure Playwright Service provides cloud-hosted browsers. The runner authenticates to Azure using a service principal stored as a GitHub Secret, then connects to the Azure service URL to run browsers in the cloud instead of the GitHub Actions machine. The URL is a GitHub Variable (not a secret) because it's not sensitive — it's just an endpoint address."*
+
+---
+
+#### 3. Full workflow step order
+
+| Step | Action |
+|---|---|
+| 1 | `actions/checkout@v5` — pull repo code onto runner |
+| 2 | `actions/setup-node@v5` with Node 24 — install Node.js |
+| 3 | `npm ci` — clean install of all dependencies |
+| 4 | `npx playwright install --with-deps` — install Playwright browsers + OS deps |
+| 5 | `azure/login@v1` — authenticate runner to Azure using `AZURE_CREDENTIALS` secret |
+| 6 | `npx playwright test --config=playwright.service.config.ts --workers=4` — run tests on Azure |
+| 7 | `actions/upload-artifact@v4` — upload `playwright-report/` for 30 days |
+
+The `if: ${{ !cancelled() }}` on the artifact step ensures the report uploads even when tests fail.
+
+**Interview talking point:** *"The `!cancelled()` condition on the upload step means the report always gets uploaded unless you manually cancel the workflow. If I used the default condition (only on success), I'd lose the report for failed runs — exactly when I need it most."*
+
+---
+
+### Concepts Demonstrated (New This Session)
+
+| Concept | Where |
+|---|---|
+| `workflow_dispatch` — manual CI trigger | `playwright.yml` trigger block |
+| GitHub Secrets vs GitHub Variables | `AZURE_CREDENTIALS` (secret) vs `PLAYWRIGHT_SERVICE_URL` (variable) |
+| Azure cloud browser execution | `playwright.service.config.ts` + `PLAYWRIGHT_SERVICE_URL` |
+| `azure/login@v1` for runner authentication | Step 5 in workflow |
+| `if: !cancelled()` for always-upload artifact | Step 7 in workflow |
+| `npm ci` vs `npm install` in CI | Step 3 — deterministic, faster, fails on lockfile mismatch |
+
+---
+
+### Current State
+
+- **Page Objects:** 2 (`PushNotificationPage`, `DocumentLibraryPage`)
+- **Test files:** 2 (`push-notification.spec.ts`, `document-library.spec.ts`)
+- **Test cases:** 34 total
+- **CI:** GitHub Actions — manual trigger only, runs on Azure cloud
+- **Report artifact:** Uploaded to GitHub Actions for 30 days after each run
+
+---
+
+*Last updated: Session 8 — 2026-05-31*
+
+---
+
+## Session 9 — Allure Report Viewing (Interview Note)
+
+### Key Concept — Re-viewing Reports After a Run
+
+Allure separates **result collection** from **report generation** into two distinct steps and two distinct folders:
+
+| Folder | What it contains | Written by |
+|---|---|---|
+| `allure-results/` | Raw JSON files — one per test | `allure-playwright` (during test run) |
+| `allure-report/` | Built HTML report | `allure generate` (CLI command) |
+
+**To open an already-generated report (no re-run needed):**
+```powershell
+allure open allure-report
+```
+Serves the existing `allure-report/` folder in the browser. Instant — no regeneration.
+
+**To regenerate from the latest test results and open:**
+```powershell
+npm run report
+# runs: allure generate allure-results --clean && allure open
+```
+`--clean` wipes the previous `allure-report/` before building fresh. Use this after running new tests.
+
+**Interview talking point:** *"`allure-playwright` is the Playwright plugin that writes raw result files during the run. `allure-commandline` is the separate CLI tool that transforms those files into a viewable HTML report. They're decoupled — you can regenerate the report as many times as you want from the same results without re-running any tests. `allure open allure-report` just serves the already-built report; `allure generate` is what actually builds it."*
+
+---
+
+*Last updated: Session 9 — 2026-05-31*

@@ -172,12 +172,15 @@ export class DocumentLibraryPage {
   async navigateToDocumentLibrary(): Promise<void> {
     await this.communicationTab.click();
     await this.documentLibraryLink.click();
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   // Opens the Actions dropdown
   // actionsButton is already env-aware from the constructor — plain click works for all envs
+  // .first() guards against multiple btn-group matches; waitFor ensures the dropdown is rendered
   async clickActionsButton(): Promise<void> {
-    await this.actionsButton.click();
+    await this.actionsButton.first().waitFor({ state: 'visible' });
+    await this.actionsButton.first().click();
   }
 
 
@@ -206,6 +209,7 @@ export class DocumentLibraryPage {
       await this.uploadMenuOption.waitFor({ state: 'visible', timeout: 2000 });
     }).toPass({ timeout: 30000 });
     await this.uploadMenuOption.click();
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   async clickAccessOption(): Promise<void> {
@@ -471,6 +475,9 @@ export class DocumentLibraryPage {
     // Month — subtract 1 because xdsoft uses 0-based month index
     await picker.locator("div.xdsoft_label.xdsoft_month span").click();
     await picker.locator(`div.xdsoft_monthselect div[data-value='${month - 1}']`).click();
+    // xdsoft re-renders the grid asynchronously after month selection — wait until at least
+    // one cell from the new month is visible before targeting the specific day
+    await picker.locator(`td.xdsoft_date[data-month='${month - 1}']`).first().waitFor({ state: 'visible' });
 
     // Day — data-month pins to the selected month, excluding overflow days from adjacent months
     await picker.locator(`td.xdsoft_date:not(.xdsoft_disabled)[data-date='${day}'][data-month='${month - 1}']`).click();

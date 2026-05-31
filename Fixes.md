@@ -109,3 +109,54 @@
 **Fix:** Added a new `draftDocumentCheckbox` locator using `page.getByText('Draft', { exact: true }).first().locator('xpath=ancestor::tr').locator('input[id="document_content"]')` — traverses up to the row containing a Draft badge and targets its checkbox. Added `clickDraftDocumentCheckbox()` method and updated TC_DL_40 to use it instead of `clickCheckbox()`.
 
 ---
+
+## Fix 18 — TC_DL_38 (and systemic): Global timeout raised from 60s to 90s
+
+**File:** `playwright.config.ts`, `tests/e2e/document-library.spec.ts`
+**Problem:** TC_DL_38's `beforeEach` hook timed out at 60s — `page.goto('/home')` + `navigateToDocumentLibrary()` + `waitForLoadState('domcontentloaded')` exceeded the budget when the preprod server was under load from the many tests that ran before it. `test.setTimeout()` inside the test body cannot fix a beforeEach timeout because the test body never runs when beforeEach fails. The pattern was systemic: TC_DL_32, TC_DL_34, TC_DL_38, and TC_DL_41 all failed due to the same underlying cause — 60s is too tight for tests running late in the sequential suite on a slow server.
+**Fix:** Raised `timeout` in `playwright.config.ts` from `60 * 1000` to `90 * 1000`. This is the correct level at which to fix a beforeEach timeout. Removed the now-redundant `test.setTimeout(90000)` from TC_DL_32, TC_DL_34, and TC_DL_41 — the global 90s covers them. TC_DL_22_4 and TC_DL_22_5 keep their `test.setTimeout(120000)` since MP4 uploads genuinely require more than 90s.
+
+---
+
+## Fix 17 — TC_DL_41: Calendar day click times out due to race condition and budget exhaustion
+
+**File:** `tests/e2e/document-library.spec.ts`, `pages/DocumentLibraryPage.ts`
+**Problem 1 — Budget exhaustion:** TC_DL_41 is the last test in the file. The 12 steps before `selectDateOfYourChoice` (navigation, actions, access form, category selection, schedule toggle) consumed nearly the full 60s on a loaded server, leaving almost no time for the calendar interaction.
+**Problem 2 — Race condition in calendar navigation:** After clicking a month option in `xdsoft_monthselect`, xdsoft re-renders the calendar grid asynchronously. The next line immediately tried to click a day cell for the new month (`data-month='5'`), but the grid hadn't updated yet — the old month's cells were still in the DOM and the new month's cells hadn't appeared. The locator matched nothing and waited until timeout.
+**Fix 1:** Added `test.setTimeout(90000)` to TC_DL_41 to address budget exhaustion.
+**Fix 2:** Added `await picker.locator('td.xdsoft_date[data-month=\\'${month - 1}\\']').first().waitFor({ state: 'visible' })` after the month option click in `selectDateOfYourChoice()`. This explicitly waits for the calendar grid to show at least one cell from the new month before attempting the day click, eliminating the race condition.
+
+---
+
+## Fix 16 — TC_DL_34: `clickActionsButton()` times out due to test budget exhaustion
+
+**File:** `tests/e2e/document-library.spec.ts`
+**Problem:** TC_DL_34 runs late in the suite (after TC_DL_32) and has more steps than TC_DL_32 — it includes hashtag entry and autocomplete selection on top of the full upload flow. The accumulated server load and the extra steps consumed the 60s test budget before `clickActionsButton()` could find the `btn-group dropdown` element.
+**Fix:** Added `test.setTimeout(90000)` as the first line of TC_DL_34, consistent with the approach used for TC_DL_32, TC_DL_22_4, and TC_DL_22_5.
+
+---
+
+## Fix 15 — TC_DL_32: `#document_file` setInputFiles times out due to test budget exhaustion
+
+**File:** `tests/e2e/document-library.spec.ts`, `pages/DocumentLibraryPage.ts`
+**Problem:** TC_DL_32 runs late in the test suite when the server is under load. By the time `uploadDocumentUsingJPG()` fires, the 60s test clock was nearly exhausted by: `navigateToDocumentLibrary()` + `waitForLoadState` + `clickActionsButton()` + `clickUploadOption()` retry loop (up to 30s) + `toHaveURL` assertion. The `setInputFiles` action had almost no remaining budget and timed out — `#document_file` exists on the page but the test clock expired before the form rendered.
+**Fix 1:** Added `await this.page.waitForLoadState('domcontentloaded')` at the end of `clickUploadOption()`. This ensures the upload form's DOM is ready before control returns to the test, so `#document_file` is immediately available.
+**Fix 2:** Added `test.setTimeout(90000)` to TC_DL_32 to give the test a larger overall budget, matching the approach used for TC_DL_22_4 and TC_DL_22_5.
+
+---
+
+## Fix 14 — TC_DL_22_4 / TC_DL_22_5: MP4 upload tests exhaust 60s test budget before URL assertion runs
+
+**File:** `tests/e2e/document-library.spec.ts`
+**Problem:** Both tests upload MP4 files and had `{ timeout: 60000 }` on the final URL assertion to account for slow server processing. But the global test timeout is also 60000ms. By the time beforeEach navigation + form filling + MP4 upload consumed the budget, the URL assertion had no time left — the `{ timeout: 60000 }` on the assertion was effectively useless.
+**Fix:** Added `test.setTimeout(120000)` as the first line of both TC_DL_22_4 and TC_DL_22_5. This overrides the global 60s timeout for these specific tests only, giving the full 120s for the test body including the server-side MP4 processing time.
+
+---
+
+## Fix 13 — TC_DL_22_3: `clickActionsButton()` times out on non-dev environments
+
+**File:** `pages/DocumentLibraryPage.ts`
+**Problem:** Two issues combined to cause a 60s test timeout on the `btn-group dropdown` locator. First, `navigateToDocumentLibrary()` had no `waitForLoadState` after clicking the Document Library link — Playwright moved on while the page was still loading, so `btn-group dropdown` wasn't in the DOM yet when `clickActionsButton()` fired. Second, calling `.click()` directly without `.first()` risks a strict mode violation if multiple elements match.
+**Fix:** Added `await this.page.waitForLoadState('domcontentloaded')` at the end of `navigateToDocumentLibrary()`. Added `.first().waitFor({ state: 'visible' })` before `.first().click()` in `clickActionsButton()`.
+
+---

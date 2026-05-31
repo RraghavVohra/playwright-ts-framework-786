@@ -326,6 +326,7 @@ test.describe('Document Library', () => {
   // on preprod. We give it 60s to account for the slower server response.
   // ─────────────────────────────────────────────────────────────────────
   test('TC_DL_22_4 - Upload document in MP4 format', async ({ page, documentLibraryPage }) => {
+    test.setTimeout(120000);
     await documentLibraryPage.clickActionsButton();
     await documentLibraryPage.clickUploadOption();
     await expect(page).toHaveURL(/sp-upload-document/);
@@ -355,6 +356,7 @@ test.describe('Document Library', () => {
   // Uses MP4 as the document to also keep the large-file timeout in place.
   // ─────────────────────────────────────────────────────────────────────
   test('TC_DL_22_5 - Upload with GIF thumbnail', async ({ page, documentLibraryPage }) => {
+    test.setTimeout(120000);
     await documentLibraryPage.clickActionsButton();
     await documentLibraryPage.clickUploadOption();
     await expect(page).toHaveURL(/sp-upload-document/);

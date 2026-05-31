@@ -15,8 +15,10 @@ export default defineConfig({
   testDir: './tests/e2e',
 
   // How long a single test is allowed to run before Playwright marks it as failed
-  // 60 seconds because the preprod server can be slow
-  timeout: 60 * 1000,
+  // 90 seconds — raised from 60s because tests running late in the suite (TC_DL_38 and others)
+  // were hitting the wall during beforeEach navigation when the preprod server is under load.
+  // MP4 upload tests (TC_DL_22_4, TC_DL_22_5) override this further to 120s individually.
+  timeout: 90 * 1000,
 
   // How long expect() assertions wait for the condition to become true
   // For example: expect(page).toHaveURL(...) will retry for up to 15 seconds
