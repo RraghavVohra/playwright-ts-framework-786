@@ -460,3 +460,205 @@ Added `clickDraftDocumentCheckbox()` method. Updated TC_DL_40 to call it instead
 ---
 
 *Last updated: Session 3 — 2026-05-24*
+
+---
+
+## Session 4 — Allure Reporter Setup
+
+### What Was Done
+
+#### 1. Installed `allure-playwright` package
+```powershell
+npm install --save-dev allure-playwright
+```
+
+#### 2. Updated reporter in `playwright.config.ts`
+Replaced the single HTML reporter with two reporters running together:
+```typescript
+reporter: [
+  ['line'],           // real-time terminal output during test run
+  ['allure-playwright'], // generates allure-results/ folder
+],
+```
+
+**After a run, generate and open the report with:**
+```powershell
+npx allure generate allure-results --clean
+npx allure open
+```
+
+**Interview talking point:** *"I use two reporters — `line` gives me live feedback in the terminal so I can see pass/fail as tests run, and `allure-playwright` generates a rich HTML report with steps, screenshots, and traces attached to each test."*
+
+---
+
+### Current State
+
+- **Page Objects:** 2 (`PushNotificationPage`, `DocumentLibraryPage`)
+- **Test files:** 2 (`push-notification.spec.ts`, `document-library.spec.ts`)
+- **Test cases:** 34 total (13 push notification + 21 document library)
+- **Reporter:** Allure + Line (dual reporter setup)
+
+---
+
+*Last updated: Session 4 — 2026-05-31*
+
+---
+
+## Session 5 — Allure CLI Setup & First Report Generated
+
+### What Was Done
+
+#### 1. Verified `allure-playwright` was already wired up correctly
+
+- `allure-playwright@3.9.0` confirmed in `devDependencies`
+- `playwright.config.ts` already had the dual reporter (`line` + `allure-playwright`)
+- `allure-results/` folder already existed from a prior test run
+
+#### 2. Discovered `allure` CLI was not installed globally
+
+`allure-playwright` only generates raw result files — a separate CLI tool is needed to turn those into the HTML report.
+
+#### 3. Installed `allure-commandline` globally
+
+```powershell
+npm install -g allure-commandline
+```
+
+This installs `allure` as a machine-level command (not in `package.json` — works like `git` or `node`). Version installed: **2.42.0**.
+
+**Interview talking point:** *"There are two separate pieces — `allure-playwright` is the Playwright plugin that collects test data into `allure-results/`, and `allure-commandline` is the CLI that processes those files into a viewable HTML report. They're installed separately because the CLI is a machine-level tool, not a project dependency."*
+
+#### 4. Generated and opened the report
+
+```powershell
+allure generate allure-results --clean
+allure open
+```
+
+`--clean` wipes any previous `allure-report/` folder before generating fresh. `allure open` launches the report in the browser automatically.
+
+---
+
+### Key Distinction — Global vs Project install
+
+| Install type | Command | Where it lives | When to use |
+|---|---|---|---|
+| Project (dev) | `npm install --save-dev` | `node_modules/` + `package.json` | Libraries tied to the project |
+| Global | `npm install -g` | Machine-level (like git/node) | CLI tools used across all projects |
+
+`allure-commandline` is global because it's a tool you use from the terminal, not something your test code imports.
+
+---
+
+### Current State
+
+- **Page Objects:** 2 (`PushNotificationPage`, `DocumentLibraryPage`)
+- **Test files:** 2 (`push-notification.spec.ts`, `document-library.spec.ts`)
+- **Test cases:** 34 total (13 push notification + 21 document library)
+- **Reporter:** Allure + Line (dual reporter setup) — full chain working end to end
+- **Allure commands:** `allure generate allure-results --clean` → `allure open`
+
+---
+
+*Last updated: Session 5 — 2026-05-31*
+
+---
+
+## Session 6 — TC_DL_04 & TC_DL_17 Flakiness Fixes
+
+### What Was Done
+
+#### 1. Fixed TC_DL_04 — Dropdown closes before Upload option is interactable
+
+**Problem:** `clickUploadOption()` called `waitFor({ state: 'visible' })` but the Actions dropdown was already closing by the time it ran. The locator resolved to hidden 81× during the 60s window — the method had no way to re-open the dropdown, so it just watched a permanently-hidden element.
+
+**Fix:** Replaced the bare `waitFor` with an `expect().toPass()` retry loop in `DocumentLibraryPage.ts`:
+```typescript
+async clickUploadOption(): Promise<void> {
+    await expect(async () => {
+        if (!(await this.uploadMenuOption.isVisible())) {
+            await this.actionsButton.click();
+        }
+        await this.uploadMenuOption.waitFor({ state: 'visible', timeout: 2000 });
+    }).toPass({ timeout: 30000 });
+    await this.uploadMenuOption.click();
+}
+```
+Each retry checks visibility, re-opens the dropdown if needed, waits 2s, and retries the whole block for up to 30s before giving up.
+
+Also added `expect` to the import line in `DocumentLibraryPage.ts`.
+
+**Interview talking point:** *"`expect().toPass()` is Playwright's built-in retry wrapper for async blocks — it re-runs the entire function until it passes or times out. I used it here because the dropdown can close between `clickActionsButton()` and `clickUploadOption()`. Without it the test was watching a hidden element for 60 seconds with no way to recover."*
+
+---
+
+#### 2. Fixed TC_DL_17 — `scrollToTop()` called mid-navigation throws page context error
+
+**Problem:** `scrollToTop()` was called immediately after `clickUploadButton()`. The button submits the form and starts a page navigation — `page.evaluate()` inside `scrollToTop()` ran while the old page's JS context was being destroyed, throwing `Target page, context or browser has been closed`. The test was timing out on first run and passing on retry — showing as yellow/flaky in Allure.
+
+**Fix:** Removed `scrollToTop()` entirely from TC_DL_17. The only assertion after it was `toHaveURL()` — a URL assertion doesn't care about scroll position, so the scroll served no purpose.
+
+**Interview talking point:** *"`page.evaluate()` runs JavaScript in the browser's page context. If the page is navigating when it runs, the context is destroyed mid-execution and Playwright throws. The rule is: never call `evaluate()` between a form submission and the resulting navigation completing. `toHaveURL()` auto-waits for the navigation — assertions like that are safe after submit. `evaluate()` is not."*
+
+---
+
+#### 3. Fixed TC_DL_34 — `text()='teaser'` predicate fails on preprod
+
+**Problem:** `hashtagSuggestion` locator used `text()='teaser'` on the `<li>`. In XPath, `text()` only selects direct text nodes — jQuery UI autocomplete wraps the text inside a child `<a>` or `<div>`, so the `<li>` has no direct text node. The suggestion was visible on screen but the locator never matched it.
+
+**Fix:** Changed to `normalize-space()='teaser'`. Without an argument, `normalize-space()` reads the full string value of the element including all descendants — handles child-element text and whitespace variations.
+
+**Interview talking point:** *"`text()` and `normalize-space()` are a classic XPath gotcha. `text()` only reads direct text nodes of the element — if the text is inside a child tag, it returns nothing. `normalize-space()` without an argument reads the whole element's string value including descendants, which is almost always what you actually want."*
+
+---
+
+#### 4. Fixed TC_DL_41 — xdsoft day locator matches overflow days from adjacent months
+
+**Problem:** `selectDateOfYourChoice()` located the day cell with only `[data-date='${day}']`. The xdsoft calendar renders overflow days from the next month at the bottom of the grid — e.g. both July 1 and August 1 have `data-date='1'`. Strict mode threw because the locator resolved to 2 elements.
+
+**Fix:** Added `[data-month='${month - 1}']` to the day locator. xdsoft stores months 0-based (same convention already used for the month selector) — this pins the click to the selected month's cell and excludes overflow days.
+
+---
+
+#### 5. Fixed TC_PN_04/06/07/08/13 — Same dropdown race condition in Push Notification feature
+
+**Problem:** `navigateToCreateNotification()` in `PushNotificationPage.ts` had the identical issue as TC_DL_04 — Actions dropdown closes before the Create App Notification option could be clicked. All 5 affected tests were stuck on the Push Notification list page.
+
+**Fix:** Applied the same `expect().toPass()` retry pattern. The prod `waitForLoadState('networkidle')` runs once as a precondition outside the loop; the loop itself re-opens the dropdown if the option isn't visible and waits 2s per attempt.
+
+**Interview talking point:** *"Once I identified the dropdown-closing race condition as a pattern, I applied the same fix to both page objects. The `expect().toPass()` wrapper is reusable — the retry logic is the same regardless of which dropdown or which option you're targeting."*
+
+---
+
+#### 6. Diagnosed TC_DL_22_4/5/6 — MP4 file too large for server upload limit
+
+**Problem:** URL stayed on `sp-upload-document.php` after clicking upload — 37 checks over 60s with no redirect. All three failing tests use `test-data/video.mp4`. PHP servers have `upload_max_filesize` / `post_max_size` limits — if exceeded, the server silently discards the upload body and the page never redirects.
+
+**Action:** User replacing `video.mp4` with a smaller file (< 2MB). Pending re-run to confirm.
+
+---
+
+### Concepts Demonstrated (New This Session)
+
+| Concept | Where |
+|---|---|
+| `expect().toPass()` retry loop for flaky dropdown interactions | `clickUploadOption()` in `DocumentLibraryPage.ts`, `navigateToCreateNotification()` in `PushNotificationPage.ts` |
+| `page.evaluate()` is unsafe mid-navigation | TC_DL_17 — removed `scrollToTop()` before navigation completes |
+| `text()` vs `normalize-space()` in XPath | TC_DL_34 — `hashtagSuggestion` locator on preprod |
+| `data-month` attribute to exclude xdsoft overflow days | TC_DL_41 — `selectDateOfYourChoice()` day locator |
+| Applying a fix pattern across multiple page objects | Dropdown race condition fixed in both `DocumentLibraryPage` and `PushNotificationPage` |
+
+---
+
+### Current State
+
+- **Page Objects:** 2 (`PushNotificationPage`, `DocumentLibraryPage`)
+- **Test files:** 2 (`push-notification.spec.ts`, `document-library.spec.ts`)
+- **Test cases:** 34 total (13 push notification + 21 document library)
+- **Fixes this session:** TC_DL_04, TC_DL_17, TC_DL_34, TC_DL_41, TC_PN_04/06/07/08/13
+- **Pending:** TC_DL_22_4/5/6 re-run after MP4 file replacement
+- **Code pushed to GitHub**
+
+---
+
+*Last updated: Session 6 — 2026-05-31*

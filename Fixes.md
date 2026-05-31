@@ -62,6 +62,46 @@
 
 ---
 
+## Fix 12 — TC_PN_04/06/07/08/13: Actions dropdown closes before Create App Notification option is interactable
+
+**File:** `pages/PushNotificationPage.ts`
+**Problem:** `navigateToCreateNotification()` clicked the Actions button then called `waitFor({ state: 'visible' })` on the Create App Notification option. The dropdown was closing before the option could be clicked — same race condition as TC_DL_04. The test stayed on the Push Notification list page with no way to recover.
+**Fix:** Applied the same `expect().toPass()` retry pattern used for `clickUploadOption()` in DocumentLibraryPage. The loop checks if the option is visible; if not, re-clicks the Actions button (using `dispatchEvent` on prod, regular click elsewhere) and waits 2s. The prod `waitForLoadState('networkidle')` is kept outside the loop — it only needs to run once as a precondition, not on every retry.
+
+---
+
+## Fix 11 — TC_DL_41: xdsoft day locator matches overflow days from adjacent months
+
+**File:** `pages/DocumentLibraryPage.ts`
+**Problem:** `selectDateOfYourChoice()` located the day cell using only `[data-date='${day}']`. The xdsoft calendar renders overflow days from the next month at the bottom of the grid — those cells share the same `data-date` value (e.g. both July 1 and August 1 have `data-date='1'`). Strict mode threw because the locator resolved to 2 elements.
+**Fix:** Added `[data-month='${month - 1}']` to the day locator. xdsoft stores months 0-based, same as the existing month selector — this pins the click to the correct month's cell and excludes any overflow days.
+
+---
+
+## Fix 10 — TC_DL_34: `text()='teaser'` fails when text lives inside a child element
+
+**File:** `pages/DocumentLibraryPage.ts`
+**Problem:** `hashtagSuggestion` on preprod used `//li[contains(@class,'ui-menu-item') and text()='teaser']`. In XPath, `text()` only selects direct text nodes of the element. jQuery UI autocomplete wraps suggestion text in a child `<a>` or `<div>` inside the `<li>`, so `text()='teaser'` never matches — the suggestion was visible on screen but the locator timed out because the predicate returned nothing.
+**Fix:** Changed to `normalize-space()='teaser'`. Without an argument, `normalize-space()` reads the full string value of the element including all descendant text, making it match regardless of how deep the text sits in the DOM.
+
+---
+
+## Fix 9 — TC_DL_17: `scrollToTop()` called mid-navigation causes page context error
+
+**File:** `tests/e2e/document-library.spec.ts`
+**Problem:** `scrollToTop()` was called immediately after `clickUploadButton()`. The button submits the form and triggers a page navigation — `page.evaluate()` inside `scrollToTop()` ran while the old page's JS context was being destroyed, throwing `Target page, context or browser has been closed`. The test was timing out on first run and passing on retry (yellow/flaky in Allure). `scrollToTop()` served no purpose here anyway — the only assertion is `toHaveURL()`, which is scroll-position-agnostic.
+**Fix:** Removed `scrollToTop()` entirely from TC_DL_17. No scroll is needed before a URL assertion.
+
+---
+
+## Fix 8 — TC_DL_04: Upload dropdown closes before `waitFor` can catch it visible
+
+**File:** `pages/DocumentLibraryPage.ts`
+**Problem:** `clickUploadOption()` called `waitFor({ state: 'visible' })` but the Actions dropdown was already closing by the time the wait ran — element resolved to hidden 81 times before the 60s timeout. The method had no way to re-open the dropdown, so it just kept watching a permanently-hidden element.
+**Fix:** Replaced the bare `waitFor` with an `expect().toPass()` retry loop. Each iteration checks if the upload option is visible; if not, it re-clicks the Actions button to re-open the dropdown, then waits 2s for the option to appear. The whole loop retries for up to 30s, then clicks once visibility is confirmed.
+
+---
+
 ## Fix 7 — TC_DL_40: Access update fails for Syndicated documents
 
 **File:** `tests/e2e/document-library.spec.ts`, `pages/DocumentLibraryPage.ts`

@@ -1,4 +1,4 @@
-import { Page, Locator } from '@playwright/test';
+import { Page, Locator, expect } from '@playwright/test';
 import { ENV } from '../utils/config';
 
 export class DocumentLibraryPage {
@@ -127,7 +127,7 @@ export class DocumentLibraryPage {
     // On dev the generic ui-menu-item match is enough
     this.hashtagSuggestion = ENV === 'dev'
       ? page.locator("//li[contains(@class,'ui-menu-item')]")
-      : page.locator("//li[contains(@class,'ui-menu-item') and text()='teaser']");
+      : page.locator("//li[contains(@class,'ui-menu-item') and normalize-space()='teaser']");
 
     // Search & listing
     this.searchBox                = page.locator("//input[@type='search' and @placeholder='Search']");
@@ -196,10 +196,15 @@ export class DocumentLibraryPage {
     ];
   }
 
-  // Waits for the Upload option to be visible before clicking
-  // On preprod the dropdown can close before the element is interactable
+  // Dropdown can close between clickActionsButton() and here — retry re-opening it
+  // until the upload option is visible, then click.
   async clickUploadOption(): Promise<void> {
-    await this.uploadMenuOption.waitFor({ state: 'visible' });
+    await expect(async () => {
+      if (!(await this.uploadMenuOption.isVisible())) {
+        await this.actionsButton.click();
+      }
+      await this.uploadMenuOption.waitFor({ state: 'visible', timeout: 2000 });
+    }).toPass({ timeout: 30000 });
     await this.uploadMenuOption.click();
   }
 
@@ -467,8 +472,8 @@ export class DocumentLibraryPage {
     await picker.locator("div.xdsoft_label.xdsoft_month span").click();
     await picker.locator(`div.xdsoft_monthselect div[data-value='${month - 1}']`).click();
 
-    // Day — skips disabled dates (past dates)
-    await picker.locator(`td.xdsoft_date:not(.xdsoft_disabled)[data-date='${day}']`).click();
+    // Day — data-month pins to the selected month, excluding overflow days from adjacent months
+    await picker.locator(`td.xdsoft_date:not(.xdsoft_disabled)[data-date='${day}'][data-month='${month - 1}']`).click();
 
     await this.selectActiveOrFirstTime();
   }

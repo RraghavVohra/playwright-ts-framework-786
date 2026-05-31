@@ -154,7 +154,6 @@ test.describe('Document Library', () => {
     await documentLibraryPage.enterDescription('Automated test description');
     await documentLibraryPage.scrollToBottom();
     await documentLibraryPage.clickUploadButton();
-    await documentLibraryPage.scrollToTop();
 
     // toHaveURL auto-waits — no sleep needed before this assertion
     // regex covers both dev (document-library.php) and preprod (sp-document-list.php)

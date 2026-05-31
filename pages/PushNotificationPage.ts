@@ -1,4 +1,4 @@
-import { Page, Locator } from '@playwright/test';
+import { Page, Locator, expect } from '@playwright/test';
 import { ENV, PARTNER_CATEGORY_NAME, CUSTOM_LINK } from '../utils/config';
 
 export class PushNotificationPage {
@@ -149,19 +149,24 @@ export class PushNotificationPage {
   async navigateToCreateNotification(): Promise<void> {
     await this.navigateToPushNotificationList();
 
-    // On prod the Actions button uses KTMenu — needs full page load + dispatchEvent
-    // On dev/preprod a regular click works
+    // On prod: wait for full page load once before the retry loop (KTMenu requirement)
     if (ENV === 'prod') {
       await this.page.waitForLoadState('networkidle');
       await this.actionsButton.scrollIntoViewIfNeeded();
-      await this.actionsButton.dispatchEvent('click');
-      await this.page.waitForTimeout(1000);
-    } else {
-      await this.actionsButton.click();
     }
 
-    // Wait until the Create App Notification option is visible before clicking
-    await this.createAppNotificationOption.waitFor({ state: 'visible' });
+    // Dropdown can close between the button click and the option becoming interactable
+    // — retry re-opening it until the option is visible
+    await expect(async () => {
+      if (!(await this.createAppNotificationOption.isVisible())) {
+        if (ENV === 'prod') {
+          await this.actionsButton.dispatchEvent('click');
+        } else {
+          await this.actionsButton.click();
+        }
+      }
+      await this.createAppNotificationOption.waitFor({ state: 'visible', timeout: 2000 });
+    }).toPass({ timeout: 30000 });
     await this.createAppNotificationOption.click();
   }
 

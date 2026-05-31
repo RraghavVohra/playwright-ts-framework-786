@@ -28,9 +28,13 @@ export default defineConfig({
   // Keeps things stable and predictable while learning
   workers: 1,
 
-  // HTML reporter = generates a nice visual report in playwright-report/ folder
-  // Open it after a run with: npx playwright show-report
-  reporter: 'html',
+  // line = shows real-time test progress in the terminal
+  // allure-playwright = generates allure-results/ folder for the Allure report
+  // After a run: npx allure generate allure-results --clean && npx allure open
+  reporter: [
+     ['line'],
+     ['allure-playwright'],
+  ],
 
   use: {
     // baseURL means you can write page.goto('/home') instead of the full URL
