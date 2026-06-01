@@ -863,3 +863,40 @@ npm run report
 ---
 
 *Last updated: Session 9 — 2026-05-31*
+
+---
+
+## Session 10 — Push Notification Full Run & Allure Report Commands
+
+### Commands Used This Session
+
+#### Run specific tests by name
+```powershell
+# Run first two tests only (TC_PN_01 and TC_PN_04)
+npx playwright test push-notification --grep "TC_PN_01|TC_PN_04"
+```
+
+#### Run complete Push Notification feature
+```powershell
+npx playwright test tests/e2e/push-notification.spec.ts
+```
+
+#### Generate fresh Allure report when older reports already exist
+```powershell
+# 1. Run tests (allure-results auto-cleaned by globalSetup before run)
+npx playwright test tests/e2e/push-notification.spec.ts
+
+# 2. Wipe old report and generate new one from latest results
+npx allure generate allure-results --clean -o allure-report
+
+# 3. Open the report in the browser
+npx allure open allure-report
+```
+
+The `--clean` flag on `allure generate` wipes the previous `allure-report/` folder before building fresh — ensures you're viewing the latest run, not a stale report. `-o allure-report` explicitly names the output folder.
+
+**Interview talking point:** *"I always use `--clean` when generating the report so there's no risk of mixing results from different runs. The `globalSetup` hook cleans `allure-results/` before each test run, and `--clean` cleans `allure-report/` before each report generation — both folders are always fresh."*
+
+---
+
+*Last updated: Session 10 — 2026-06-01*
