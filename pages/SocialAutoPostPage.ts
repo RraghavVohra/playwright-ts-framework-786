@@ -1,4 +1,4 @@
-import { Page, Locator } from '@playwright/test';
+import { Page, Locator, expect } from '@playwright/test';
 import { ENV, SOCIAL_PARTNER_SEARCH, SOCIAL_PARTNER_NAME } from '../utils/config';
 
 export class SocialAutoPostPage {
@@ -51,15 +51,36 @@ export class SocialAutoPostPage {
   private nextMonthButton: Locator;
 
   // Submit
-  private schedulePostButton: Locator;
+  private sendNotificationCheckbox: Locator;
+  private schedulePostButton:       Locator;
+
+  // Validation
+  private imageSizeError: Locator;
 
   // ─────────────────────────────────────────────────────────────────────
   // FILE PATHS — resolved relative to the project root
   // ─────────────────────────────────────────────────────────────────────
-  static readonly PNG_FILE      = 'test-data/Amsterdam.png';
-  static readonly JPG_FILE      = 'test-data/goldengate.jpg';
-  static readonly MP4_FILE      = 'test-data/video.mp4';
-  static readonly THUMBNAIL_JPG = 'test-data/goldengate.jpg';
+  // Valid PNG sizes — all sourced from test-data/Social Auto-posts/
+  static readonly PNG_FILE       = 'test-data/Social Auto-posts/Sap 800X460.png';
+  static readonly PNG_600X460    = 'test-data/Social Auto-posts/Sap 600X460.png';
+  static readonly PNG_720X1140   = 'test-data/Social Auto-posts/Sap 720X1140.png';
+  static readonly PNG_800X660    = 'test-data/Social Auto-posts/Sap 800X660.png';
+  static readonly PNG_800X860    = 'test-data/Social Auto-posts/Sap 800X860.png';
+  static readonly PNG_1024X628   = 'test-data/Social Auto-posts/Sap 1024X628.png';
+  static readonly PNG_1080X940   = 'test-data/Social Auto-posts/Sap 1080X940.png';
+  static readonly PNG_1200X490   = 'test-data/Social Auto-posts/Sap 1200X490.png';
+  static readonly PNG_1200X760   = 'test-data/Social Auto-posts/Sap 1200X760.png';
+  static readonly PNG_1200X1060  = 'test-data/Social Auto-posts/Sap 1200X1060.png';
+  static readonly PNG_1440X2420  = 'test-data/Social Auto-posts/Sap 1440X2420.png';
+  static readonly PNG_1600X698   = 'test-data/Social Auto-posts/Sap 1600X698.png';
+  static readonly PNG_2048X1908  = 'test-data/Social Auto-posts/Sap 2048X1908.png';
+  static readonly PNG_2160X3700  = 'test-data/Social Auto-posts/Sap 2160X3700.png';
+  // JPG — to be updated when JPG files are added to Social Auto-posts/
+  static readonly JPG_FILE       = 'test-data/goldengate.jpg';
+  static readonly THUMBNAIL_JPG  = 'test-data/goldengate.jpg';
+  // MP4 and invalid size
+  static readonly MP4_FILE         = 'test-data/Social Auto-posts/video 1280X720.mp4';
+  static readonly INVALID_PNG_FILE = 'test-data/Social Auto-posts/Hello.png';
 
   // ─────────────────────────────────────────────────────────────────────
   // CONSTRUCTOR
@@ -99,10 +120,9 @@ export class SocialAutoPostPage {
     this.descriptionField = page.locator("//textarea[@id='description_link']");
 
     // Partner Category
-    // categoryLabel built from SOCIAL_PARTNER_NAME env var — same pattern as DocumentLibraryPage
-    this.partnerCategoryButton = page.locator("//div[@id='multiSelectDisplay']");
-    this.searchBox             = page.locator("#searchBox");
-    this.categoryLabel         = page.locator(`//label[normalize-space()='${SOCIAL_PARTNER_NAME}']`);
+    this.partnerCategoryButton = page.getByText('Select Category');
+    this.searchBox             = page.getByRole('textbox', { name: 'Search' });
+    this.categoryLabel         = page.getByText(SOCIAL_PARTNER_NAME);
     // facebookLabel used as a post-close confirmation — visible only when dropdown is closed
     this.facebookLabel = page.locator("//label[normalize-space()='Facebook']");
 
@@ -125,7 +145,11 @@ export class SocialAutoPostPage {
     );
 
     // Submit
-    this.schedulePostButton = page.locator("//button[@id='share_button']");
+    this.sendNotificationCheckbox = page.getByRole('checkbox', { name: 'Send Notification' });
+    this.schedulePostButton       = page.getByRole('button', { name: 'Schedule Post' });
+
+    // Validation
+    this.imageSizeError = page.getByText('Image Size not valid');
   }
 
 
@@ -164,15 +188,26 @@ export class SocialAutoPostPage {
 
   async uploadFile(filePath: string): Promise<void> {
     await this.fileInput.setInputFiles(filePath);
+    await expect(this.imageSizeError).not.toBeVisible();
   }
 
   // Convenience wrappers — each calls uploadFile() with the right static path
-  async uploadFileInPNG(): Promise<void> { await this.uploadFile(SocialAutoPostPage.PNG_FILE); }
-  async uploadFileInJPG(): Promise<void> { await this.uploadFile(SocialAutoPostPage.JPG_FILE); }
-  async uploadFileInMP4(): Promise<void> { await this.uploadFile(SocialAutoPostPage.MP4_FILE); }
+  async uploadFileInPNG(): Promise<void>     { await this.uploadFile(SocialAutoPostPage.PNG_FILE); }
+  async uploadFileInJPG(): Promise<void>     { await this.uploadFile(SocialAutoPostPage.JPG_FILE); }
+  async uploadFileInMP4(): Promise<void>     { await this.uploadFile(SocialAutoPostPage.MP4_FILE); }
+  async uploadInvalidPNG(): Promise<void>    { await this.uploadFile(SocialAutoPostPage.INVALID_PNG_FILE); }
+  async uploadFilePath(filePath: string): Promise<void> { await this.uploadFile(filePath); }
 
   async uploadThumbnailInJPG(): Promise<void> {
     await this.thumbnailInput.setInputFiles(SocialAutoPostPage.THUMBNAIL_JPG);
+  }
+
+  async assertImageSizeError(): Promise<void> {
+    await expect(this.imageSizeError).toBeVisible();
+  }
+
+  async assertImageRequiredError(): Promise<void> {
+    await this.page.waitForSelector('text=Image/Video is required while creating a social post!', { state: 'visible' });
   }
 
 
@@ -201,6 +236,7 @@ export class SocialAutoPostPage {
 
   // Opens the partner category multi-select dropdown and waits for the search box to appear
   async clickPartnerCategoryButton(): Promise<void> {
+    await this.partnerCategoryButton.waitFor({ state: 'visible' });
     await this.partnerCategoryButton.click();
     await this.searchBox.waitFor({ state: 'visible' });
   }

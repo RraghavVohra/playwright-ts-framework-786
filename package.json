@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "npx playwright test",
-    "report": "allure generate allure-results --clean && allure open"
+    "test": "npm run clean:reports && npx playwright test",
+    "report": "allure generate allure-results --clean && allure open",
+    "clean:reports": "if exist playwright-report rmdir /s /q playwright-report && if exist allure-report rmdir /s /q allure-report && if exist allure-results rmdir /s /q allure-results"
   },
   "keywords": [],
   "author": "",

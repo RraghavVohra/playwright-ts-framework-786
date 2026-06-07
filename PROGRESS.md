@@ -1085,3 +1085,114 @@ TC_SAP_03 has `test.setTimeout(120000)` — MP4 uploads are slow.
 ---
 
 *Last updated: Session 11 — 2026-06-07*
+
+---
+
+## Session 12 — Social Auto-post: Test Data, Locator Updates & New Test Cases
+
+### What Was Done
+
+#### 1. Test data organised (`test-data/Social Auto-posts/`)
+
+Created a dedicated subfolder for Social Auto-post media files. Added 14 PNG files (one per allowed image resolution) and one MP4 (`video 1280X720.mp4`). A `Hello.png` (800×600 — not in the allowed list) was added for the invalid size negative test.
+
+---
+
+#### 2. Playwright config updated (`playwright.config.ts`)
+
+- `screenshot: 'only-on-failure'` → `screenshot: 'on'` — captures screenshots on every test, not just failures
+- `trace: 'on-first-retry'` → `trace: 'on'` — records trace on every test
+- Added `['html', { open: 'never' }]` to reporters — enables `npx playwright show-report`
+
+**Why:** The trace viewer was not being populated for passing tests. Switching both settings to `'on'` means every run produces a full step-by-step trace viewable in the Playwright HTML report — useful for verifying behaviour even when a test passes.
+
+**Interview talking point:** *"I set trace and screenshot to 'on' during development so I can inspect every step in the trace viewer regardless of pass/fail. On CI you'd typically revert to 'on-first-retry' to reduce storage overhead."*
+
+---
+
+#### 3. Locator updates in `SocialAutoPostPage.ts`
+
+Switched three partner category locators and the schedule button to semantic Playwright locators:
+
+| Old | New |
+|---|---|
+| `//div[@id='multiSelectDisplay']` | `getByText('Select Category')` |
+| `#searchBox` | `getByRole('textbox', { name: 'Search' })` |
+| `//label[normalize-space()='${SOCIAL_PARTNER_NAME}']` | `getByText(SOCIAL_PARTNER_NAME)` |
+| `//button[@id='share_button']` | `getByRole('button', { name: 'Schedule Post' })` |
+
+Also added:
+- `sendNotificationCheckbox` → `getByRole('checkbox', { name: 'Send Notification' })`
+- `imageSizeError` → `getByText('Image Size not valid')`
+
+---
+
+#### 4. File path constants updated
+
+`PNG_FILE` and `MP4_FILE` now point to `Social Auto-posts/`. Added 13 additional static constants (`PNG_600X460` through `PNG_2160X3700`) — one per remaining allowed size.
+
+Added public `uploadFilePath(filePath: string)` method so individual test cases can specify any file path without needing a dedicated wrapper method per size.
+
+---
+
+#### 5. Validation methods added
+
+```typescript
+async assertImageSizeError(): Promise<void> {
+  await expect(this.imageSizeError).toBeVisible();
+}
+
+async assertImageRequiredError(): Promise<void> {
+  await this.page.waitForSelector('text=Image/Video is required while creating a social post!', { state: 'visible' });
+}
+```
+
+`assertImageRequiredError()` uses `waitForSelector` instead of `expect().toBeVisible()` — the "Image/Video required" message appears a few seconds after Schedule Post is clicked, and `waitForSelector` is more reliable for catching delayed messages.
+
+---
+
+#### 6. Reliability fix — `clickPartnerCategoryButton()`
+
+Added `waitFor({ state: 'visible' })` before clicking the partner category button. Without it, TC_SAP_10 (no file upload) reached the category step faster than the form finished rendering, causing the dropdown click to miss.
+
+**Interview talking point:** *"TC_SAP_09 passed but TC_SAP_10 failed on the same locator. The difference was TC_SAP_10 had no file upload step, so the test reached the category dropdown much faster. Adding `waitFor` before the click made it reliable regardless of how quickly the previous step completed."*
+
+---
+
+#### 7. New test cases
+
+| Test ID | Description | Type |
+|---|---|---|
+| TC_SAP_01 | PNG 800X460 + cobranding + Facebook (renamed) | Happy Path |
+| TC_SAP_03 | MP4 1280X720 + thumbnail + cobranding (renamed) | Happy Path |
+| TC_SAP_09 | Wrong size image → "Image Size not valid" → schedule → "Image/Video required" | Negative |
+| TC_SAP_10 | No image + all 3 channels → schedule → "Image/Video required" | Negative |
+| TC_SAP_11–23 | One test per remaining allowed PNG size, all on Facebook with cobranding | Happy Path |
+
+TC_SAP_11–23 are generated via a `for` loop over a data array — avoids repeating the same test body 13 times while keeping explicit TC IDs.
+
+---
+
+### Concepts Demonstrated (New This Session)
+
+| Concept | Where |
+|---|---|
+| Semantic locators (`getByRole`, `getByText`) replacing XPath | Partner category + schedule button locators |
+| `waitForSelector` for delayed validation messages | `assertImageRequiredError()` |
+| `waitFor` before interaction for timing reliability | `clickPartnerCategoryButton()` |
+| Loop-generated test cases with explicit TC IDs | TC_SAP_11–23 in `social-autopost.spec.ts` |
+| Negative test design — image size validation flow | TC_SAP_09, TC_SAP_10 |
+| `uploadFilePath()` — generic upload method for parameterised tests | Used in TC_SAP_11–23 |
+
+---
+
+### Current State
+
+- **Page Objects:** 3 (`PushNotificationPage`, `DocumentLibraryPage`, `SocialAutoPostPage`)
+- **Test files:** 3 (`push-notification.spec.ts`, `document-library.spec.ts`, `social-autopost.spec.ts`)
+- **Test cases:** 57 total (13 push notification + 21 document library + 23 social auto-post)
+- **Reporter:** Allure + Line + HTML (triple reporter)
+
+---
+
+*Last updated: Session 12 — 2026-06-07*
