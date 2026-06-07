@@ -25,7 +25,11 @@
     "resolveJsonModule": true,
 
     // The starting point TypeScript uses to resolve your import paths
-    "baseUrl": "."
+    "baseUrl": ".",
+
+    // Silences deprecation warnings for options that are still valid but flagged
+    // in newer TypeScript versions (moduleResolution=node and baseUrl)
+    "ignoreDeprecations": "6.0"
   },
 
   // Tell TypeScript to look at ALL .ts files in this project

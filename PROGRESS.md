@@ -900,3 +900,188 @@ The `--clean` flag on `allure generate` wipes the previous `allure-report/` fold
 ---
 
 *Last updated: Session 10 — 2026-06-01*
+
+---
+
+## Session 11 — Social Auto-post Feature (Page Object, Fixtures, Tests)
+
+### What Was Built
+
+#### 1. New Page Object (`pages/SocialAutoPostPage.ts`)
+
+Ported from `SocialAutoPostPagePW.java` in the playwright-java-learning project.
+
+**Locator groups defined:**
+
+| Group | Locators |
+|---|---|
+| Navigation | `communicationTab`, `automationTabProd`, `socialOptionProd`, `socialAutoPostLink`, `autoPostTabProd` |
+| Actions | `actionsButton`, `createPostButton` |
+| File Upload | `fileInput` (`#file-upload`), `thumbnailInput` (`#social_tumbnail`) |
+| Form Fields | `cobrandingButton`, `titleField`, `descriptionField` |
+| Partner Category | `partnerCategoryButton`, `searchBox`, `categoryLabel`, `facebookLabel` |
+| Social Media | `twitterLabel`, `linkedInLabel` |
+| URL Options | `customUrlRadio` (`#C`), `customUrlInput`, `noneRadio` (`#N`) |
+| Date / Time | `dateTimeInput` (`.form_datetime`), `nextMonthButton` |
+| Submit | `schedulePostButton` |
+
+**Static file path constants:** `PNG_FILE`, `JPG_FILE`, `MP4_FILE`, `THUMBNAIL_JPG`
+
+---
+
+#### 2. Key Locator & Method Decisions (Interview Reference)
+
+##### Decision 1 — `actionsButton` uses `@data-bs-toggle='dropdown'` to target specifically
+```typescript
+this.actionsButton = page.locator("//div[contains(@class,'btn-group')]//a[@data-bs-toggle='dropdown']");
+```
+Other `btn-group` elements exist on the page. The `data-bs-toggle` attribute pins the locator to the Actions dropdown trigger exclusively.
+
+**Interview talking point:** *"I narrow locators as specifically as possible. `data-bs-toggle='dropdown'` uniquely identifies the dropdown trigger — without it I'd risk matching other btn-group elements on the page."*
+
+---
+
+##### Decision 2 — Navigation is environment-conditional
+```typescript
+async navigateToSocialAutoPost(): Promise<void> {
+  if (ENV === 'prod') {
+    await this.automationTabProd.click();  // Automation → Social → Auto Post
+    await this.socialOptionProd.click();
+    await this.autoPostTabProd.click();
+  } else {
+    await this.communicationTab.click();   // Communication → Social Auto Post
+    await this.socialAutoPostLink.click();
+  }
+}
+```
+On dev/preprod, Social Auto Post lives under the Communication tab. On prod it's under Automation → Social → Auto Post. Same pattern as DocumentLibraryPage — decision made once in the page object, tests stay clean.
+
+**Interview talking point:** *"Same pattern as other page objects — environment-conditional navigation logic lives in the page object, not the tests. The test calls one method regardless of which environment it's on."*
+
+---
+
+##### Decision 3 — `cobrandingButton` and radio buttons use `evaluate()` for click
+```typescript
+await this.cobrandingButton.evaluate(el => (el as HTMLElement).click());
+await this.customUrlRadio.evaluate(el => (el as HTMLElement).click());
+```
+These elements don't respond to Playwright's regular `.click()` — the same issue was documented in the Java project. `evaluate()` runs `click()` directly in the browser's JS context, bypassing Playwright's visibility and actionability checks.
+
+**Interview talking point:** *"`evaluate()` is the escape hatch when a UI component doesn't respond to Playwright's regular interactions. I use it selectively — only when the standard `.click()` demonstrably fails — so the page object stays predictable."*
+
+---
+
+##### Decision 4 — `nextMonthButton` scoped to `xdsoft_datepicker`
+```typescript
+this.nextMonthButton = page.locator(
+  "//div[contains(@class,'xdsoft_datepicker')]//button[contains(@class,'xdsoft_next')]"
+);
+```
+The xdsoft datetime picker renders TWO `xdsoft_next` buttons — one in the datepicker (next month) and one in the timepicker (scroll time down). Without scoping, the locator matches both and Playwright throws a strict mode violation. This fix was already documented in the Java project's comments.
+
+**Interview talking point:** *"I read the Java project's comments carefully — this strict mode violation was already identified there. Scoping to `xdsoft_datepicker` isolates the month navigation button from the timepicker's scroll button."*
+
+---
+
+##### Decision 5 — `selectFutureDate()` loop with `waitForTimeout(500)`
+```typescript
+for (let attempt = 0; attempt < 24; attempt++) {
+  // compare displayed month → click day if match, else click nextMonthButton
+  await this.page.waitForTimeout(500); // xdsoft month-change animation
+}
+```
+The Social Auto-post picker only has a "next month" arrow — no year/month dropdown like the Document Library picker. Navigation requires iterating forward. The 500ms wait is kept because xdsoft has no deterministic signal after a month change — same approach as the Java project.
+
+**Interview talking point:** *"Two different xdsoft pickers in this project behave differently. Document Library has year/month dropdowns so I jump directly. Social Auto-post only has a next arrow so I loop forward. I chose the right strategy per picker, not a one-size-fits-all approach."*
+
+---
+
+##### Decision 6 — `getFutureScheduleDate()` helper in the page object
+```typescript
+getFutureScheduleDate(daysFromNow: number): { day: number; monthYear: string } {
+  const date = new Date();
+  date.setDate(date.getDate() + daysFromNow);
+  const monthName = date.toLocaleString('en-US', { month: 'long' });
+  return { day: date.getDate(), monthYear: `${monthName} ${date.getFullYear()}` };
+}
+```
+The Java project had this helper in the base test class. In TypeScript there's no base test class — fixtures replace that pattern. The helper is in the page object so any test can call it via `socialAutoPostPage.getFutureScheduleDate(1)`. Returns `{ day: 7, monthYear: 'June 2026' }` — the format xdsoft displays in its header.
+
+**Interview talking point:** *"In Java the helper lived in a shared base test class. TypeScript's fixture pattern eliminates the need for a base class — I moved the helper into the page object so tests still get access without inheritance."*
+
+---
+
+#### 3. Config additions (`utils/config.ts`)
+
+Five new exports:
+```typescript
+export const SOCIAL_PARTNER_SEARCH = process.env.SOCIAL_PARTNER_SEARCH ?? 'raj';
+export const SOCIAL_PARTNER_NAME   = process.env.SOCIAL_PARTNER_NAME   ?? 'Raj2024';
+export const SOCIAL_TITLE          = process.env.SOCIAL_TITLE          ?? "Social's Auto-post";
+export const SOCIAL_DESCRIPTION    = process.env.SOCIAL_DESCRIPTION    ?? "This's is only for testing...";
+export const SOCIAL_CUSTOM_URL     = process.env.SOCIAL_CUSTOM_URL     ?? 'https://www.salespanda.com';
+```
+`SOCIAL_TITLE` and `SOCIAL_DESCRIPTION` defaults already contain special characters (apostrophes, ampersands) — TC_SAP_04 (special characters test) uses these same defaults with no extra setup needed.
+
+---
+
+#### 4. Fixtures updated (`utils/fixtures.ts`)
+
+Added `socialAutoPostPage: SocialAutoPostPage` to `MyFixtures` type and registered the fixture — same pattern as previous page objects.
+
+---
+
+#### 5. Test class (`tests/e2e/social-autopost.spec.ts`)
+
+7 test cases:
+
+| Test ID | Description | Type |
+|---|---|---|
+| TC_SAP_01 | PNG image + cobranding + Facebook | Happy Path / E2E |
+| TC_SAP_02 | JPG image + cobranding + Facebook | Happy Path / E2E |
+| TC_SAP_03 | MP4 video + JPG thumbnail + cobranding (no explicit channel) | Happy Path / E2E |
+| TC_SAP_04 | Special characters in title and description | Edge Case |
+| TC_SAP_05 | All 3 social channels + Custom URL | Happy Path / E2E |
+| TC_SAP_06 | All 3 social channels + None URL option | Happy Path / E2E |
+| TC_SAP_07 | All 3 social channels + Microsite URL (default) + 17:30 | Happy Path / E2E |
+
+`beforeEach` navigates to `/home` → Social Auto Post list → Actions → Create Post — all tests start on the Create Post form.
+
+TC_SAP_03 has `test.setTimeout(120000)` — MP4 uploads are slow.
+
+---
+
+#### 6. TypeScript installed + tsconfig fixed
+
+- Added `typescript` as a dev dependency (was missing — Playwright has its own bundled transpiler but standalone `tsc --noEmit` needs it)
+- Added `"ignoreDeprecations": "6.0"` to `tsconfig.json` — silences deprecation warnings from the newer TypeScript version for `moduleResolution=node` and `baseUrl`
+- **Result: `npx tsc --noEmit` passes with zero errors**
+
+---
+
+### Concepts Demonstrated (New This Session)
+
+| Concept | Where |
+|---|---|
+| `evaluate()` for non-responsive UI components | `cobrandingButton`, `customUrlRadio`, `noneRadio`, `selectTime()` |
+| Loop-based calendar navigation (xdsoft next-arrow pattern) | `selectFutureDate()` |
+| `xdsoft_datepicker` scope to avoid strict mode violation | `nextMonthButton` locator |
+| `waitForFunction()` to confirm datetime input populated | `selectFutureDate()` — after day click |
+| Page object helper replacing Java base class method | `getFutureScheduleDate()` |
+| Environment-conditional navigation (3-step prod path vs 2-step preprod) | `navigateToSocialAutoPost()` |
+| Partner category search-filter-select pattern | `selectPartnerCategory()` + `closePartnerCategoryDropdown()` |
+
+---
+
+### Current State
+
+- **Page Objects:** 3 (`PushNotificationPage`, `DocumentLibraryPage`, `SocialAutoPostPage`)
+- **Test files:** 3 (`push-notification.spec.ts`, `document-library.spec.ts`, `social-autopost.spec.ts`)
+- **Test cases:** 41 total (13 push notification + 21 document library + 7 social auto-post)
+- **Environments supported:** 3 (dev, preprod, prod)
+- **TypeScript check:** Passing (`npx tsc --noEmit` — zero errors)
+- **Pending:** Run social-autopost tests when server is back up
+
+---
+
+*Last updated: Session 11 — 2026-06-07*

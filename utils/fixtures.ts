@@ -1,6 +1,7 @@
 import { test as base, expect } from '@playwright/test';
 import { PushNotificationPage } from '../pages/PushNotificationPage';
 import { DocumentLibraryPage } from '../pages/DocumentLibraryPage';
+import { SocialAutoPostPage } from '../pages/SocialAutoPostPage';
 
 // ─────────────────────────────────────────────────────────────────────
 // WHY FIXTURES?
@@ -24,6 +25,7 @@ import { DocumentLibraryPage } from '../pages/DocumentLibraryPage';
 type MyFixtures = {
   pushNotificationPage: PushNotificationPage;
   documentLibraryPage:  DocumentLibraryPage;
+  socialAutoPostPage:   SocialAutoPostPage;
 };
 
 // base.extend() takes the standard Playwright 'test' and adds our custom fixtures to it
@@ -46,6 +48,12 @@ export const test = base.extend<MyFixtures>({
     const documentLibraryPage = new DocumentLibraryPage(page);
     // Playwright runs the test at this 'use' call — setup above, teardown below
     await use(documentLibraryPage);
+  },
+
+  // Same pattern — any test declaring 'socialAutoPostPage' gets this injected automatically
+  socialAutoPostPage: async ({ page }, use) => {
+    const socialAutoPostPage = new SocialAutoPostPage(page);
+    await use(socialAutoPostPage);
   },
 
 });

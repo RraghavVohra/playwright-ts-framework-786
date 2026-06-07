@@ -36,3 +36,12 @@ export const DOCUMENT_NAME = process.env.DOCUMENT_NAME ?? 'AutoDoc';
 // The hashtag text typed into the hashtag field in Document Library tests
 // Must match a hashtag that exists in the autocomplete on your target environment
 export const HASHTAG_TEXT = process.env.HASHTAG_TEXT ?? 'teaser';
+
+// Social Auto-post config
+// social.partner.search — term typed into the category search box to filter results
+// social.partner.name   — exact visible label text of the category to select
+export const SOCIAL_PARTNER_SEARCH = process.env.SOCIAL_PARTNER_SEARCH ?? 'raj';
+export const SOCIAL_PARTNER_NAME   = process.env.SOCIAL_PARTNER_NAME   ?? 'Raj2024';
+export const SOCIAL_TITLE          = process.env.SOCIAL_TITLE          ?? "Social's Auto-post";
+export const SOCIAL_DESCRIPTION    = process.env.SOCIAL_DESCRIPTION    ?? "This's is only for testing purpose & it is for automated testing";
+export const SOCIAL_CUSTOM_URL     = process.env.SOCIAL_CUSTOM_URL     ?? 'https://www.salespanda.com';
