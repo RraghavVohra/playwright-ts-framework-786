@@ -1245,12 +1245,27 @@ TC_SAP_11–23 are generated via a `for` loop over a data array — avoids repea
 
 ---
 
+#### 3. Azure Cloud Test Scripts (`package.json`, `playwright.service.config.ts`)
+
+- Added npm scripts wrapping the existing manual Azure commands:
+  - `npm run test:azure` — runs the full suite on Azure Playwright Testing (`--config=playwright.service.config.ts --workers=4`), with `clean:reports` first
+  - `npm run test:azure:file -- <spec-file>` — runs a single spec file on Azure (extra args after `--` are passed through to the playwright CLI)
+  - `npm run report:show` — opens the local Playwright HTML report
+  - `npm run report:azure` — opens the Azure run's HTML report
+- `playwright.service.config.ts` HTML reporter now writes to its own `azure-report` folder (`outputFolder: "azure-report"`) instead of the default `playwright-report`, so local and Azure runs don't overwrite each other's reports
+- `clean:reports` now also removes `azure-report`
+
+**Interview talking point:** *"Local and Azure runs write to separate report folders (`playwright-report` vs `azure-report`), so running one doesn't clobber the other's results — useful when comparing a local debug run against a cloud run."*
+
+---
+
 ### Current State
 
 - **Environments supported:** dev, preprod, prod, digipulse
 - **Page Objects:** 3 (`PushNotificationPage`, `DocumentLibraryPage`, `SocialAutoPostPage`)
 - **Test cases:** 47 total (14 push notification + 22 document library + 11 social auto-post)
 - **Tags:** `@smoke` (3 tests), `@regression` (all 47)
+- **Report outputs:** `playwright-report` (local), `azure-report` (Azure cloud), `allure-results`/`allure-report` (Allure)
 
 ---
 

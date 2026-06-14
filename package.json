@@ -7,8 +7,12 @@
     "test": "npm run clean:reports && npx playwright test",
     "test:smoke": "npm run clean:reports && npx playwright test --grep @smoke",
     "test:regression": "npm run clean:reports && npx playwright test --grep @regression",
+    "test:azure": "npm run clean:reports && npx playwright test --config=playwright.service.config.ts --workers=4",
+    "test:azure:file": "npx playwright test --config=playwright.service.config.ts --workers=4",
     "report": "allure generate allure-results --clean && allure open",
-    "clean:reports": "if exist playwright-report rmdir /s /q playwright-report && if exist allure-report rmdir /s /q allure-report && if exist allure-results rmdir /s /q allure-results"
+    "report:show": "npx playwright show-report",
+    "report:azure": "npx playwright show-report azure-report",
+    "clean:reports": "if exist playwright-report rmdir /s /q playwright-report && if exist allure-report rmdir /s /q allure-report && if exist allure-results rmdir /s /q allure-results && if exist azure-report rmdir /s /q azure-report"
   },
   "keywords": [],
   "author": "",
