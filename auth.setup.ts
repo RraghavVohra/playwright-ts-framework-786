@@ -1,5 +1,5 @@
 import { test as setup, expect } from '@playwright/test';
-import { USER_EMAIL, USER_PASSWORD } from './utils/config';
+import { ENV, USER_EMAIL, USER_PASSWORD } from './utils/config';
 
 // 'setup' is just the name Playwright shows in the report for this step
 // It is not a regular test — it is a one-time login that runs before all tests
@@ -7,7 +7,8 @@ setup('authenticate', async ({ page }) => {
 
   // Step 1: Navigate to the home page
   // baseURL is already set in playwright.config.ts so '/' resolves to the full URL
-  await page.goto('/');
+  // Digipulse's login page lives at '/home' specifically — other environments use '/'
+  await page.goto(ENV === 'digipulse' ? '/home' : '/');
 
   // Step 2: Wait for the username field to be visible before typing
   // The app is Angular-based and takes a moment to render the login form

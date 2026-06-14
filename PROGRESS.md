@@ -1210,6 +1210,7 @@ TC_SAP_11–23 are generated via a `for` loop over a data array — avoids repea
 - Added `automationTabDigipulse` and `autoPostOptionDigipulse` locators to `SocialAutoPostPage`
 - `navigateToSocialAutoPost()` now has a `digipulse` branch: Automation tab → Auto Post (a 2-click flow, vs prod's 3-click Automation → Social → Auto Post)
 - Push Notification and Document Library flows work unchanged on Digipulse — their `communicationTab` → link navigation is already environment-generic
+- `auth.setup.ts` now navigates to `/home` for Digipulse only (`page.goto(ENV === 'digipulse' ? '/home' : '/')`) — Digipulse's login page lives at `/home`, while other environments serve login at `/`. `BASE_URL` itself stays a plain domain for all environments; only this one navigation call branches on `ENV`.
 
 **Interview talking point:** *"Adding a new test environment only required extending the `BASE_URLS` map and adding one branch to the navigation method — the rest of the page object and all test logic stayed the same."*
 
@@ -1264,7 +1265,11 @@ TC_SAP_11–23 are generated via a `for` loop over a data array — avoids repea
 - The "Install Playwright Browsers" + cache steps were removed — tests run on Azure cloud browsers (Microsoft Playwright Testing service), so a local Chromium install isn't needed. This was also causing 25+ minute runs because a cancelled run never lets `actions/cache` save, so every run started from a cold cache.
 - `auth.setup.ts` needs `USER_EMAIL`/`USER_PASSWORD`/`ENV` at runtime, but `.env` is gitignored (correctly — it holds credentials), so CI had no values for these. Added them to the "Run Playwright tests" step's `env:` block, sourced from `secrets.USER_EMAIL` / `secrets.USER_PASSWORD` / `inputs.environment`.
 - `workflow_dispatch` now takes an `environment` choice input (`digipulse` / `prod` / `preprod` / `dev`, defaults to `digipulse`). The job sets `environment: ${{ inputs.environment }}`, so each GitHub "Environment" (Settings → Environments) can define its own `USER_EMAIL`/`USER_PASSWORD` secrets under the same names — environments without their own secrets fall back to the repo-level secrets.
-- **Manual setup required (one-time, per environment you want to run):** add `USER_EMAIL`/`USER_PASSWORD` repo-level secrets (covers `digipulse`, the default). To run against `prod`/`preprod`, create a GitHub Environment with that name and add its own `USER_EMAIL`/`USER_PASSWORD` secrets there.
+- **Manual GitHub setup completed:**
+  - Repo-level secrets `USER_EMAIL`/`USER_PASSWORD` added with Digipulse credentials — covers `digipulse` (default) and `dev` via fallback.
+  - GitHub Environment `prod` created (Settings → Environments) with its own `USER_EMAIL`/`USER_PASSWORD` secrets (prod credentials) — overrides repo secrets when `prod` is selected from the dropdown.
+  - `preprod` Environment not yet created — add it the same way (with preprod credentials) when that environment needs to run in CI.
+- Full debugging journey (25-min browser install → removed install steps → resulting login failure → credential/Environment setup) logged as **Fix 21** in `Fixes.md`.
 
 **Interview talking point:** *"The workflow picks the target environment via a manual dropdown, and GitHub Environments let each one carry its own credentials under identical secret names — `config.ts` doesn't need to change at all, it still just reads `USER_EMAIL`/`USER_PASSWORD`/`ENV` from `process.env`."*
 

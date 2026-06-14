@@ -177,3 +177,33 @@
 **Note:** If a future Azure run fails because Playwright still expects a local browser binary, the fallback is to run the job inside Microsoft's official Playwright Docker image (`mcr.microsoft.com/playwright:vX-noble`), which has Chromium + OS deps pre-baked — no install step needed at all.
 
 ---
+
+## Fix 21 — GitHub Actions: Login failed with `value: expected string, got undefined` after Fix 20, then multi-environment credentials needed
+
+**File:** `.github/workflows/playwright.yml`, GitHub repo Settings (Secrets and Environments)
+
+**Problem 1 — Missing credentials in CI:** After Fix 20 removed the browser-install steps, the workflow proceeded straight to running tests — and immediately failed inside `auth.setup.ts`:
+```
+Error: locator.fill: value: expected string, got undefined
+  await page.locator('#username').fill(USER_EMAIL);
+```
+`.env` holds `USER_EMAIL`/`USER_PASSWORD`/`ENV` and is correctly gitignored, so none of these existed as `process.env` values on the GitHub runner — `USER_EMAIL`/`USER_PASSWORD` were `undefined`.
+
+**Problem 2 — Need different credentials per environment:** The framework now supports 4 environments (`dev`/`preprod`/`prod`/`digipulse`), each with different login credentials. GitHub Actions can't dynamically build a secret *name* like `USER_EMAIL_${{ inputs.environment }}` — secret names in `${{ secrets.X }}` must be static.
+
+**Fix:**
+1. Added `ENV`, `USER_EMAIL`, `USER_PASSWORD` to the "Run Playwright tests" step's `env:` block:
+   ```yaml
+   ENV: ${{ inputs.environment }}
+   USER_EMAIL: ${{ secrets.USER_EMAIL }}
+   USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
+   ```
+2. Added `workflow_dispatch.inputs.environment` (choice dropdown: digipulse/prod/preprod/dev) and `environment: ${{ inputs.environment }}` at the job level — this lets GitHub Actions resolve `secrets.USER_EMAIL`/`secrets.USER_PASSWORD` from a **GitHub Environment matching the dropdown selection first**, falling back to repo-level secrets if that environment has none of its own. Same secret *names* everywhere, different *values* per environment — no `config.ts` changes needed.
+3. In GitHub UI (manual, one-time per environment):
+   - Added repo-level secrets `USER_EMAIL` = `prem.chandra@salespanda.com`, `USER_PASSWORD` = `Sbtest@1234` (Digipulse creds) — these are the fallback used when the selected environment defines no secrets of its own, so they cover `digipulse` (the default) and `dev`.
+   - Created a GitHub Environment named `prod` (Settings → Environments → New environment) and added environment-scoped secrets `USER_EMAIL` = `eduadmin@gmail.com`, `USER_PASSWORD` = `12345` — these override the repo-level secrets only when `prod` is selected.
+   - `preprod` can be set up the same way later (creds: `raghav.vohra@salespanda.com` / `Sbtest@1234`) when needed.
+
+**Result:** Selecting an environment from the `workflow_dispatch` dropdown now logs in with the correct credentials for that environment, with zero code changes required to add a new environment's credentials — just a new GitHub Environment + two secrets.
+
+---
