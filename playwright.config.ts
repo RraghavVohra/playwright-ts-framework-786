@@ -39,6 +39,7 @@ export default defineConfig({
   reporter: [
      ['line'],
      ['allure-playwright'],
+     ['html', { open: 'never' }],
   ],
 
   use: {
