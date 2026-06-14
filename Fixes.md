@@ -160,3 +160,20 @@
 **Fix:** Added `await this.page.waitForLoadState('domcontentloaded')` at the end of `navigateToDocumentLibrary()`. Added `.first().waitFor({ state: 'visible' })` before `.first().click()` in `clickActionsButton()`.
 
 ---
+
+## Fix 19 — GitHub Actions: `playwright-report` artifact would be empty for Azure runs
+
+**File:** `.github/workflows/playwright.yml`
+**Problem:** `playwright.service.config.ts` was changed to write its HTML report to `azure-report/` (so local and Azure runs don't overwrite each other's reports), but the workflow's `actions/upload-artifact@v4` step was still hardcoded to upload `playwright-report/`. Since the Azure run no longer writes anything there, the uploaded artifact would be empty.
+**Fix:** Changed the artifact step's `path:` from `playwright-report/` to `azure-report/` to match the new output folder.
+
+---
+
+## Fix 20 — GitHub Actions: "Install Playwright Browsers" step taking 25+ minutes every run
+
+**File:** `.github/workflows/playwright.yml`
+**Problem:** The `npx playwright install --with-deps chromium` step ran on every workflow run and took 25+ minutes, never benefiting from the `actions/cache` step above it. Root cause: the workflow was being manually cancelled before it finished (because of the long wait), and `actions/cache` only saves its cache in a post-job step that runs when the job completes — a cancelled run never saves the cache, so every subsequent run started from zero again (cache miss loop). Separately, since tests run on **Azure cloud browsers** (`playwright.service.config.ts` + Azure Playwright Testing service), the local Chromium install was likely unnecessary altogether.
+**Fix:** Removed the "Cache Playwright Browsers" and "Install Playwright Browsers" steps entirely — test execution happens on Azure's remote browsers, not the GitHub runner. Renumbered the remaining step comments (4-6).
+**Note:** If a future Azure run fails because Playwright still expects a local browser binary, the fallback is to run the job inside Microsoft's official Playwright Docker image (`mcr.microsoft.com/playwright:vX-noble`), which has Chromium + OS deps pre-baked — no install step needed at all.
+
+---

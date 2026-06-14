@@ -26,30 +26,15 @@ jobs:
     # npm ci = clean install — faster and more reliable than npm install in CI
     - name: Install dependencies
       run: npm ci
-   # Step 4 
-   # ✅ Cache Playwright browsers — skips 170MB download on repeat runs
-    - name: Cache Playwright Browsers
-      uses: actions/cache@v4
-      id: playwright-cache
-      with:
-        path: ~/.cache/ms-playwright
-        key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-playwright-
 
-  # ✅ Only installs browsers if cache missed
-    - name: Install Playwright Browsers
-      if: steps.playwright-cache.outputs.cache-hit != 'true'
-      run: npx playwright install --with-deps chromium   # ✅ Chromium only
-
-    # Step 5 — Login to Microsoft Azure
+    # Step 4 — Login to Microsoft Azure
     # Uses AZURE_CREDENTIALS secret stored in GitHub → Settings → Secrets
     # This authenticates GitHub Actions to use your Azure workspace  
     - name: Azure Login
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
-    # Step 6 — Run Playwright tests on Azure cloud
+    # Step 5 — Run Playwright tests on Azure cloud
     # PLAYWRIGHT_SERVICE_URL tells Playwright to use Azure cloud browsers
     # --config = use Azure service config instead of local config
     # --workers=4 = run 4 tests in parallel on Azure cloud
@@ -58,7 +43,7 @@ jobs:
       env:
          PLAYWRIGHT_SERVICE_URL : ${{ vars.PLAYWRIGHT_SERVICE_URL }}
       run: npx playwright test --config=playwright.service.config.ts --workers=4
-    # Step 7 — Upload test report as artifact to GitHub
+    # Step 6 — Upload test report as artifact to GitHub
     # The if statement means-> upload report even if tests failed
     # retention-days: 30 = report stays available for 30 days
     # Download from GitHub → Actions → your run → Artifacts section
@@ -66,5 +51,5 @@ jobs:
       if: ${{ !cancelled() }}
       with:
         name: playwright-report
-        path: playwright-report/
+        path: azure-report/
         retention-days: 30
