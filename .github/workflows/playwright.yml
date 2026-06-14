@@ -5,6 +5,17 @@ on:
   # You go to GitHub → Actions → Run workflow → click button
   # Tests run ONLY when YOU decide — no automatic triggers
    workflow_dispatch:
+     inputs:
+       environment:
+         description: 'Environment to run tests against'
+         required: true
+         default: 'digipulse'
+         type: choice
+         options:
+           - digipulse
+           - prod
+           - preprod
+           - dev
 
 # WHAT to run
 jobs:
@@ -13,6 +24,11 @@ jobs:
     timeout-minutes: 60
     # Which machine to run on — GitHub's Ubuntu Linux server
     runs-on: ubuntu-latest
+    # Selects the GitHub "Environment" matching the chosen input —
+    # each environment (digipulse/prod/preprod/dev) can define its own
+    # USER_EMAIL/USER_PASSWORD secrets under the same names.
+    # If an environment has no secrets of its own, repo-level secrets are used as fallback.
+    environment: ${{ inputs.environment }}
     # LIST OF STEPS — executed top to bottom in order
     steps:
     # Step 1 — Pull your code from GitHub onto the runner machine
@@ -42,6 +58,9 @@ jobs:
     - name: Run Playwright tests
       env:
          PLAYWRIGHT_SERVICE_URL : ${{ vars.PLAYWRIGHT_SERVICE_URL }}
+         ENV: ${{ inputs.environment }}
+         USER_EMAIL: ${{ secrets.USER_EMAIL }}
+         USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
       run: npx playwright test --config=playwright.service.config.ts --workers=4
     # Step 6 — Upload test report as artifact to GitHub
     # The if statement means-> upload report even if tests failed

@@ -1259,6 +1259,17 @@ TC_SAP_11–23 are generated via a `for` loop over a data array — avoids repea
 
 ---
 
+#### 4. CI: Multi-Environment Support via `workflow_dispatch` + GitHub Environments (`.github/workflows/playwright.yml`)
+
+- The "Install Playwright Browsers" + cache steps were removed — tests run on Azure cloud browsers (Microsoft Playwright Testing service), so a local Chromium install isn't needed. This was also causing 25+ minute runs because a cancelled run never lets `actions/cache` save, so every run started from a cold cache.
+- `auth.setup.ts` needs `USER_EMAIL`/`USER_PASSWORD`/`ENV` at runtime, but `.env` is gitignored (correctly — it holds credentials), so CI had no values for these. Added them to the "Run Playwright tests" step's `env:` block, sourced from `secrets.USER_EMAIL` / `secrets.USER_PASSWORD` / `inputs.environment`.
+- `workflow_dispatch` now takes an `environment` choice input (`digipulse` / `prod` / `preprod` / `dev`, defaults to `digipulse`). The job sets `environment: ${{ inputs.environment }}`, so each GitHub "Environment" (Settings → Environments) can define its own `USER_EMAIL`/`USER_PASSWORD` secrets under the same names — environments without their own secrets fall back to the repo-level secrets.
+- **Manual setup required (one-time, per environment you want to run):** add `USER_EMAIL`/`USER_PASSWORD` repo-level secrets (covers `digipulse`, the default). To run against `prod`/`preprod`, create a GitHub Environment with that name and add its own `USER_EMAIL`/`USER_PASSWORD` secrets there.
+
+**Interview talking point:** *"The workflow picks the target environment via a manual dropdown, and GitHub Environments let each one carry its own credentials under identical secret names — `config.ts` doesn't need to change at all, it still just reads `USER_EMAIL`/`USER_PASSWORD`/`ENV` from `process.env`."*
+
+---
+
 ### Current State
 
 - **Environments supported:** dev, preprod, prod, digipulse
@@ -1266,6 +1277,7 @@ TC_SAP_11–23 are generated via a `for` loop over a data array — avoids repea
 - **Test cases:** 47 total (14 push notification + 22 document library + 11 social auto-post)
 - **Tags:** `@smoke` (3 tests), `@regression` (all 47)
 - **Report outputs:** `playwright-report` (local), `azure-report` (Azure cloud), `allure-results`/`allure-report` (Allure)
+- **CI:** `playwright.yml` — manual trigger with environment dropdown (digipulse/prod/preprod/dev), runs on Azure cloud browsers
 
 ---
 
