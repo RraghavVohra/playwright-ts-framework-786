@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "npm run clean:reports && npx playwright test",
+    "test:smoke": "npm run clean:reports && npx playwright test --grep @smoke",
+    "test:regression": "npm run clean:reports && npx playwright test --grep @regression",
     "report": "allure generate allure-results --clean && allure open",
     "clean:reports": "if exist playwright-report rmdir /s /q playwright-report && if exist allure-report rmdir /s /q allure-report && if exist allure-results rmdir /s /q allure-results"
   },

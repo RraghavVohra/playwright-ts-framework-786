@@ -15,6 +15,8 @@ export class SocialAutoPostPage {
   private socialOptionProd:   Locator;
   private socialAutoPostLink: Locator;
   private autoPostTabProd:    Locator;
+  private automationTabDigipulse: Locator;
+  private autoPostOptionDigipulse: Locator;
 
   // Actions
   private actionsButton:    Locator;
@@ -96,6 +98,8 @@ export class SocialAutoPostPage {
     this.socialOptionProd   = page.locator("//a[normalize-space()='Social']");
     this.socialAutoPostLink = page.locator("//a[normalize-space()='Social Auto Post']");
     this.autoPostTabProd    = page.locator("//a[normalize-space()='Auto Post']");
+    this.automationTabDigipulse = page.getByText('Automation' ,{ exact : true});
+    this.autoPostOptionDigipulse = page.getByRole('link', { name: 'Auto Post' });
 
     // Actions
     // actionsButton uses data-bs-toggle to target the dropdown trigger specifically —
@@ -160,11 +164,15 @@ export class SocialAutoPostPage {
   // Navigation path differs by environment:
   //   dev / preprod : Communication tab → Social Auto Post link
   //   prod          : Automation tab → Social → Auto Post
+  //   digipulse     : Automation tab → Auto Post
   async navigateToSocialAutoPost(): Promise<void> {
     if (ENV === 'prod') {
       await this.automationTabProd.click();
       await this.socialOptionProd.click();
       await this.autoPostTabProd.click();
+    } else if (ENV === 'digipulse') {
+      await this.automationTabDigipulse.click();
+      await this.autoPostOptionDigipulse.click();
     } else {
       await this.communicationTab.click();
       await this.socialAutoPostLink.click();

@@ -20,7 +20,7 @@ test.beforeEach(async ({ page }) => {
 // TC_PN_01 — User is taken to the Push Notification screen
 // Verifies: page heading text + URL contains the correct path
 // ─────────────────────────────────────────────────────────────────────
-test('TC_PN_01 - navigates to Push Notification list screen', async ({ page, pushNotificationPage }) => {
+test('TC_PN_01 - navigates to Push Notification list screen', { tag: ['@regression'] }, async ({ page, pushNotificationPage }) => {
 
   await pushNotificationPage.navigateToPushNotificationList();
 
@@ -38,7 +38,7 @@ test('TC_PN_01 - navigates to Push Notification list screen', async ({ page, pus
 // TC_PN_04 — User is taken to the Create App Notification screen
 // Verifies: URL changes to the create page after clicking Actions → Create
 // ─────────────────────────────────────────────────────────────────────
-test('TC_PN_04 - navigates to Create App Notification screen', async ({ page, pushNotificationPage }) => {
+test('TC_PN_04 - navigates to Create App Notification screen', { tag: ['@regression'] }, async ({ page, pushNotificationPage }) => {
 
   await pushNotificationPage.navigateToCreateNotification();
 
@@ -50,7 +50,7 @@ test('TC_PN_04 - navigates to Create App Notification screen', async ({ page, pu
 // TC_PN_03 — Actions menu shows the correct 3 options
 // Verifies: the dropdown contains exactly Create App Notification, WhatsApp Template List, Delete
 // ─────────────────────────────────────────────────────────────────────
-test('TC_PN_03 - actions menu shows correct options', async ({ pushNotificationPage }) => {
+test('TC_PN_03 - actions menu shows correct options', { tag: ['@regression'] }, async ({ pushNotificationPage }) => {
 
   // openActionsMenu opens the dropdown WITHOUT clicking any option inside it
   await pushNotificationPage.openActionsMenu();
@@ -69,7 +69,7 @@ test('TC_PN_03 - actions menu shows correct options', async ({ pushNotificationP
 // TC_PN_06 — Notification channel radio buttons work correctly
 // Verifies: selecting WhatsApp deselects Push, and vice versa
 // ─────────────────────────────────────────────────────────────────────
-test('TC_PN_06 - notification channel selection works', async ({ pushNotificationPage }) => {
+test('TC_PN_06 - notification channel selection works', { tag: ['@regression'] }, async ({ pushNotificationPage }) => {
 
   await pushNotificationPage.navigateToCreateNotification();
 
@@ -89,7 +89,7 @@ test('TC_PN_06 - notification channel selection works', async ({ pushNotificatio
 // TC_PN_13 — "Send To" radio buttons are mutually exclusive
 // Verifies: selecting Upload List deselects Partner Category, and vice versa
 // ─────────────────────────────────────────────────────────────────────
-test('TC_PN_13 - send to options are mutually exclusive', async ({ pushNotificationPage }) => {
+test('TC_PN_13 - send to options are mutually exclusive', { tag: ['@regression'] }, async ({ pushNotificationPage }) => {
 
   await pushNotificationPage.navigateToCreateNotification();
 
@@ -109,7 +109,7 @@ test('TC_PN_13 - send to options are mutually exclusive', async ({ pushNotificat
 // TC_PN_16 — Search textfield in category dropdown works
 // Verifies: typing 'Raj2024' shows the matching category in the list
 // ─────────────────────────────────────────────────────────────────────
-test('TC_PN_16 - category search textfield works', async ({ pushNotificationPage }) => {
+test('TC_PN_16 - category search textfield works', { tag: ['@regression'] }, async ({ pushNotificationPage }) => {
 
   await pushNotificationPage.navigateToCreateNotification();
 
@@ -125,7 +125,7 @@ test('TC_PN_16 - category search textfield works', async ({ pushNotificationPage
 // TC_PN_15 — Select All option in category dropdown works
 // Verifies: after clicking Select All, the button text shows categories were selected
 // ─────────────────────────────────────────────────────────────────────
-test('TC_PN_15 - select all categories works', async ({ pushNotificationPage }) => {
+test('TC_PN_15 - select all categories works', { tag: ['@regression'] }, async ({ pushNotificationPage }) => {
 
   await pushNotificationPage.navigateToCreateNotification();
 
@@ -143,7 +143,7 @@ test('TC_PN_15 - select all categories works', async ({ pushNotificationPage }) 
 // TC_PN_07 — Submit without Notification Name shows validation message
 // Verifies: browser HTML5 validation tooltip says "Please fill out this field."
 // ─────────────────────────────────────────────────────────────────────
-test('TC_PN_07 - missing notification name shows validation message', async ({ pushNotificationPage }) => {
+test('TC_PN_07 - missing notification name shows validation message', { tag: ['@regression'] }, async ({ pushNotificationPage }) => {
 
   await pushNotificationPage.navigateToCreateNotification();
 
@@ -170,7 +170,7 @@ test('TC_PN_07 - missing notification name shows validation message', async ({ p
 // ─────────────────────────────────────────────────────────────────────
 // TC_PN_08 — Submit without Notification Message shows validation message
 // ─────────────────────────────────────────────────────────────────────
-test('TC_PN_08 - missing notification message shows validation message', async ({ pushNotificationPage }) => {
+test('TC_PN_08 - missing notification message shows validation message', { tag: ['@regression'] }, async ({ pushNotificationPage }) => {
 
   await pushNotificationPage.navigateToCreateNotification();
 
@@ -200,7 +200,7 @@ test('TC_PN_08 - missing notification message shows validation message', async (
 // TC_PN_17 — Submit without selecting a Category
 // Verifies: form stays on the create page (does not navigate away)
 // ─────────────────────────────────────────────────────────────────────
-test('TC_PN_17 - missing category keeps form on create page', async ({ page, pushNotificationPage }) => {
+test('TC_PN_17 - missing category keeps form on create page', { tag: ['@regression'] }, async ({ page, pushNotificationPage }) => {
 
   await pushNotificationPage.navigateToCreateNotification();
 
@@ -226,7 +226,7 @@ test('TC_PN_17 - missing category keeps form on create page', async ({ page, pus
 // TC_PN_19 — Custom Link selected but URL field left empty
 // Verifies: inline error message appears below the custom link field
 // ─────────────────────────────────────────────────────────────────────
-test('TC_PN_19 - missing custom link URL shows validation error', async ({ pushNotificationPage }) => {
+test('TC_PN_19 - missing custom link URL shows validation error', { tag: ['@regression'] }, async ({ pushNotificationPage }) => {
 
   await pushNotificationPage.navigateToCreateNotification();
 
@@ -257,7 +257,7 @@ test('TC_PN_19 - missing custom link URL shows validation error', async ({ pushN
 // TC_PN_23 — Full successful submission with all fields
 // Verifies: success toast appears with correct message
 // ─────────────────────────────────────────────────────────────────────
-test('TC_PN_23 - full form submission shows success toast', async ({ pushNotificationPage }) => {
+test('TC_PN_23 - full form submission shows success toast', { tag: ['@smoke', '@regression'] }, async ({ pushNotificationPage }) => {
 
   await pushNotificationPage.navigateToCreateNotification();
 
@@ -289,7 +289,7 @@ test('TC_PN_23 - full form submission shows success toast', async ({ pushNotific
 // TC_PN_49 — Special characters in notification name and message
 // Verifies: the message field correctly stores and retains special characters
 // ─────────────────────────────────────────────────────────────────────
-test('TC_PN_49 - special characters are accepted in message field', async ({ pushNotificationPage }) => {
+test('TC_PN_49 - special characters are accepted in message field', { tag: ['@regression'] }, async ({ pushNotificationPage }) => {
 
   await pushNotificationPage.navigateToCreateNotification();
 
@@ -310,7 +310,7 @@ test('TC_PN_49 - special characters are accepted in message field', async ({ pus
 // TC_PN_50 — Upload List selected but no CSV file uploaded
 // Verifies: form stays on create page (browser validation blocks submission)
 // ─────────────────────────────────────────────────────────────────────
-test('TC_PN_50 - missing CSV keeps form on create page', async ({ page, pushNotificationPage }) => {
+test('TC_PN_50 - missing CSV keeps form on create page', { tag: ['@regression'] }, async ({ page, pushNotificationPage }) => {
 
   await pushNotificationPage.navigateToCreateNotification();
 

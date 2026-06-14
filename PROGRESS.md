@@ -1196,3 +1196,62 @@ TC_SAP_11–23 are generated via a `for` loop over a data array — avoids repea
 ---
 
 *Last updated: Session 12 — 2026-06-07*
+
+---
+
+## Session 13 — Digipulse Environment Support & Smoke/Regression Tagging
+
+### What Was Built
+
+#### 1. New Digipulse Environment (`utils/config.ts`, `.env`, `pages/SocialAutoPostPage.ts`)
+
+- Added `'digipulse'` to the `ENV` type union and to the `BASE_URLS` map (`https://app.digipulsesp.in`)
+- `.env` switched to `ENV=digipulse` with new credentials (prem.chandra@salespanda.com), prod/preprod credentials kept commented out for reference
+- Added `automationTabDigipulse` and `autoPostOptionDigipulse` locators to `SocialAutoPostPage`
+- `navigateToSocialAutoPost()` now has a `digipulse` branch: Automation tab → Auto Post (a 2-click flow, vs prod's 3-click Automation → Social → Auto Post)
+- Push Notification and Document Library flows work unchanged on Digipulse — their `communicationTab` → link navigation is already environment-generic
+
+**Interview talking point:** *"Adding a new test environment only required extending the `BASE_URLS` map and adding one branch to the navigation method — the rest of the page object and all test logic stayed the same."*
+
+---
+
+#### 2. Smoke & Regression Tagging (all 3 spec files, `package.json`)
+
+- Adopted Playwright's native `tag` option on `test()` / `test.describe()`
+- All 47 existing tests tagged `@regression`:
+  - `push-notification.spec.ts` (no `describe` wrapper) — tagged each of the 14 `test()` calls individually
+  - `social-autopost.spec.ts` and `document-library.spec.ts` — tagged once at the `test.describe()` level (covers 11 and 22 tests respectively)
+- Added `@smoke` to one core happy-path test per feature — the primary end-to-end flow that proves the feature isn't fundamentally broken:
+  - `TC_PN_23` — full push notification submission shows success toast
+  - `TC_SAP_01` — PNG post with cobranding enabled on Facebook
+  - `TC_DL_17` — PDF upload with all mandatory fields
+- New npm scripts in `package.json`:
+  - `npm run test:smoke` → `npx playwright test --grep @smoke`
+  - `npm run test:regression` → `npx playwright test --grep @regression`
+
+**Interview talking point:** *"Smoke tests answer 'is the build alive?' — one critical happy-path per module, tagged `@smoke` and `@regression` both. Regression covers the full suite. Tags are applied at the `describe` level where possible to avoid repeating the option on every test."*
+
+---
+
+### Concepts Demonstrated (New This Session)
+
+| Concept | Where |
+|---|---|
+| Multi-server environment switching via a config map | `utils/config.ts` — `BASE_URLS` |
+| Environment-specific navigation branching | `SocialAutoPostPage.navigateToSocialAutoPost()` |
+| Test tagging strategy (smoke vs regression) | All 3 spec files |
+| `describe`-level vs per-`test` tag application | social-autopost/document-library vs push-notification |
+| npm scripts as a single entry point for test execution | `package.json` |
+
+---
+
+### Current State
+
+- **Environments supported:** dev, preprod, prod, digipulse
+- **Page Objects:** 3 (`PushNotificationPage`, `DocumentLibraryPage`, `SocialAutoPostPage`)
+- **Test cases:** 47 total (14 push notification + 22 document library + 11 social auto-post)
+- **Tags:** `@smoke` (3 tests), `@regression` (all 47)
+
+---
+
+*Last updated: Session 13 — 2026-06-14*

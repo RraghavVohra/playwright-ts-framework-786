@@ -1,7 +1,7 @@
 import { test, expect } from '../../utils/fixtures';
 import { SOCIAL_TITLE, SOCIAL_DESCRIPTION, SOCIAL_CUSTOM_URL } from '../../utils/config';
 
-test.describe('Social Auto Post', () => {
+test.describe('Social Auto Post', { tag: ['@regression'] }, () => {
 
   // ─────────────────────────────────────────────────────────────────────
   // beforeEach — resets to home then navigates to the Create Post form
@@ -36,7 +36,7 @@ test.describe('Social Auto Post', () => {
   // The picker disables past dates. Using tomorrow ensures the selected day
   // is always valid regardless of when the test runs.
   // ─────────────────────────────────────────────────────────────────────
-  test('TC_SAP_01 - Post PNG image 800X460 with cobranding enabled on Facebook', async ({ socialAutoPostPage }) => {
+  test('TC_SAP_01 - Post PNG image 800X460 with cobranding enabled on Facebook', { tag: ['@smoke'] }, async ({ socialAutoPostPage }) => {
     await socialAutoPostPage.uploadFileInPNG();
     await socialAutoPostPage.scrollDownByTwoHundred();
     await socialAutoPostPage.clickEnableCobrandingButton();

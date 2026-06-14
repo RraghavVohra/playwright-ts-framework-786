@@ -18,7 +18,7 @@ import { DOCUMENT_NAME, HASHTAG_TEXT } from '../../utils/config';
 // and would throw an error. fixtures.ts is the single source for all our page objects.
 // ─────────────────────────────────────────────────────────────────────
 
-test.describe('Document Library', () => {
+test.describe('Document Library', { tag: ['@regression'] }, () => {
 
   // ─────────────────────────────────────────────────────────────────────
   // beforeEach — runs before every single test in this describe block
@@ -134,7 +134,7 @@ test.describe('Document Library', () => {
   // The description field is below the fold on the upload form — scrolling
   // brings it into the viewport so fill() can interact with it reliably.
   // ─────────────────────────────────────────────────────────────────────
-  test('TC_DL_17 - Upload document with all mandatory fields (PDF)', async ({ page, documentLibraryPage }) => {
+  test('TC_DL_17 - Upload document with all mandatory fields (PDF)', { tag: ['@smoke'] }, async ({ page, documentLibraryPage }) => {
     await documentLibraryPage.clickActionsButton();
     await documentLibraryPage.clickUploadOption();
     await expect(page).toHaveURL(/sp-upload-document/);
