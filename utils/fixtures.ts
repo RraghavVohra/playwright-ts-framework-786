@@ -2,7 +2,7 @@ import { test as base, expect } from '@playwright/test';
 import { PushNotificationPage } from '../pages/PushNotificationPage';
 import { DocumentLibraryPage } from '../pages/DocumentLibraryPage';
 import { SocialAutoPostPage } from '../pages/SocialAutoPostPage';
-
+import { TestimonialsPage } from '../pages/TestimonialsPage';
 // ─────────────────────────────────────────────────────────────────────
 // WHY FIXTURES?
 //
@@ -26,6 +26,7 @@ type MyFixtures = {
   pushNotificationPage: PushNotificationPage;
   documentLibraryPage:  DocumentLibraryPage;
   socialAutoPostPage:   SocialAutoPostPage;
+  testimonialsPage: TestimonialsPage;
 };
 
 // base.extend() takes the standard Playwright 'test' and adds our custom fixtures to it
@@ -55,6 +56,11 @@ export const test = base.extend<MyFixtures>({
     const socialAutoPostPage = new SocialAutoPostPage(page);
     await use(socialAutoPostPage);
   },
+
+  testimonialsPage: async ({ page },use) => {
+    const testimonialsPage = new TestimonialsPage(page);
+    await use(testimonialsPage);
+  }
 
 });
 
