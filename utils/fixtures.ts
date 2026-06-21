@@ -57,6 +57,7 @@ export const test = base.extend<MyFixtures>({
     await use(socialAutoPostPage);
   },
 
+// Same pattern — any test declaring 'testimonialsPage' gets this injected automatically
   testimonialsPage: async ({ page },use) => {
     const testimonialsPage = new TestimonialsPage(page);
     await use(testimonialsPage);

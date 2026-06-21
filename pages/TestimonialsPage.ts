@@ -13,6 +13,10 @@ export class TestimonialsPage {
     private page: Page;
     private setupTab: Locator;
     private testimonialsNewOption: Locator;
+    private actionsButton: Locator;
+    private createNewOption: Locator;
+    private deleteOption: Locator;
+    private testimonialsHeading: Locator;
 
  // Runs once when a test does: new TestimonialsPage(page)
 // In TypeScript the constructor is ALWAYS the literal word 'constructor'.
@@ -24,6 +28,10 @@ export class TestimonialsPage {
         this.setupTab = page.getByText('Setup',{exact: true});
 // "Testimonials New" option inside the Setup menu
         this.testimonialsNewOption = page.getByRole('link',{ name: 'Testimonials New'});
+        this.actionsButton = page.locator(`//*[local-name()='svg' and @width='24px']`);
+        this.createNewOption = page.locator(`a[href*="framework/create/testimonial"]`);
+        this.deleteOption = page.locator(`//a[@id='Delete3']`);
+        this.testimonialsHeading = page.getByText('Add Testimonial', { exact: true });
     }
 
 // Navigates from the current page to the Testimonials screen
@@ -34,5 +42,34 @@ async navigateToTestimonials(): Promise<void> {
     await this.testimonialsNewOption.click();
 
 }
+
+async openActionsMenu(): Promise<void> {
+    await this.actionsButton.click();
+}
+
+async navigateToCreateTestimonial(): Promise<void> {
+    await this.navigateToTestimonials(); // reuse: get to the list page
+    await this.openActionsMenu();  // reuse: open the Actions menu
+    await this.createNewOption.click(); // click Create Ne
+}
+
+async getAddTestimonialHeading(): Promise<string> {
+  return (await this.testimonialsHeading.textContent()) ?? '';
+}
+
+
+// Expose the option locators so tests can assert on them with auto-waiting.
+// The selector STRING still lives only in this file — the test just gets a handle.
+getCreateNewOption(): Locator {
+  return this.createNewOption;
+}
+
+getDeleteOption(): Locator {
+  return this.deleteOption;
+}
+
+
+
+
 }
 
