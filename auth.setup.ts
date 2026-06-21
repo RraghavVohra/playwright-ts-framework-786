@@ -28,7 +28,7 @@ setup('authenticate', async ({ page }) => {
   // Step 6: Wait until the URL contains 'AssetLibrary'
   // This confirms login was successful and the redirect completed
   // If login fails, this line will timeout and the setup will fail — no tests will run
-  await page.waitForURL('**/AssetLibrary', { timeout: 30000 });
+  await page.waitForURL('**/AssetLibrary', { timeout: 60000 });
 
   // Step 7: Save the entire session to auth.json
   // auth.json captures cookies + localStorage — everything the browser uses to stay logged in

@@ -1,1 +1,1 @@
-[{"data":{"failed":1,"broken":0,"skipped":0,"passed":14,"unknown":0,"total":15}}]
+[{"buildOrder":2,"reportUrl":"http://localhost:9090/job/PlaywrightTSFramework/2/allure","reportName":"AllureReport","data":{"failed":5,"broken":19,"skipped":0,"passed":39,"unknown":0,"total":63}},{"buildOrder":1,"reportUrl":"http://localhost:9090/job/PlaywrightTSFramework/1/allure","reportName":"AllureReport","data":{"failed":1,"broken":0,"skipped":62,"passed":0,"unknown":0,"total":63}}]

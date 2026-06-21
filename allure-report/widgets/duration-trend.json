@@ -1,1 +1,1 @@
-[{"data":{"duration":343038}}]
+[{"buildOrder":2,"reportUrl":"http://localhost:9090/job/PlaywrightTSFramework/2/allure","reportName":"AllureReport","data":{"duration":2764440}},{"buildOrder":1,"reportUrl":"http://localhost:9090/job/PlaywrightTSFramework/1/allure","reportName":"AllureReport","data":{"duration":43774}}]

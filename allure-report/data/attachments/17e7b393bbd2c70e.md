@@ -1,0 +1,242 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: push-notification.spec.ts >> TC_PN_03 - actions menu shows correct options
+- Location: tests\e2e\push-notification.spec.ts:53:5
+
+# Error details
+
+```
+Error: expect(received).toEqual(expected) // deep equality
+
+- Expected  - 5
++ Received  + 1
+
+- Array [
+-   "Create App Notification",
+-   "WhatsApp Template List",
+-   "Delete",
+- ]
++ Array []
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=e4]:
+  - generic [ref=e6]:
+    - img "Logo" [ref=e8]
+    - generic [ref=e9]:
+      - generic [ref=e12]:
+        - generic [ref=e15] [cursor=pointer]: Automation
+        - link "AssetLibrary" [ref=e18] [cursor=pointer]:
+          - /url: https://app.digipulsesp.in/home/AssetLibrary
+          - generic [ref=e19]: AssetLibrary
+        - generic [ref=e22] [cursor=pointer]: journey
+        - generic [ref=e25] [cursor=pointer]: Campaign
+        - generic [ref=e28] [cursor=pointer]: Conversion
+        - generic [ref=e31] [cursor=pointer]: Social
+        - generic [ref=e34] [cursor=pointer]: Communication
+        - generic [ref=e37] [cursor=pointer]: Pipeline
+        - generic [ref=e40] [cursor=pointer]: Dashboard
+        - generic [ref=e43] [cursor=pointer]: Setup
+      - generic [ref=e45]:
+        - generic [ref=e46]:
+          - generic [ref=e49] [cursor=pointer]: 
+          - text:  
+        - text: 
+  - generic [ref=e52]:
+    - generic [ref=e53]:
+      - text: PUSH NOTIFICATION
+      - button [active] [ref=e54] [cursor=pointer]:
+        - img [ref=e56]
+      - text:  
+      - separator [ref=e62]
+    - generic [ref=e63]:
+      - text:  
+      - table [ref=e64]:
+        - rowgroup [ref=e65]:
+          - row "Notification Name Notification Message Notification Channel Status Create Date Schedule Date Sent For Delivery Stats" [ref=e66]:
+            - columnheader [ref=e67]:
+              - checkbox [ref=e68]
+            - columnheader "Notification Name" [ref=e69]
+            - columnheader "Notification Message" [ref=e70]
+            - columnheader "Notification Channel" [ref=e71]
+            - columnheader "Status" [ref=e72]
+            - columnheader "Create Date" [ref=e73]
+            - columnheader "Schedule Date" [ref=e74]
+            - columnheader "Sent For" [ref=e75]
+            - columnheader "Delivery Stats" [ref=e76]
+        - rowgroup
+```
+
+# Test source
+
+```ts
+  1   | // Import from fixtures — NOT from '@playwright/test'
+  2   | // This gives us our custom 'pushNotificationPage' fixture automatically
+  3   | import { test, expect } from '../../utils/fixtures';
+  4   | import { PARTNER_CATEGORY_NAME } from '../../utils/config';
+  5   | 
+  6   | // ─────────────────────────────────────────────────────────────────────
+  7   | // BEFORE EACH TEST
+  8   | // Runs before every single test in this file
+  9   | // Job: navigate to the home page — that's it
+  10  | // Login is already handled by auth.json (storageState in playwright.config.ts)
+  11  | // ─────────────────────────────────────────────────────────────────────
+  12  | test.beforeEach(async ({ page }) => {
+  13  |   // '/home' resolves to the full preprod URL because baseURL is set in playwright.config.ts
+  14  |   // The session from auth.json is already loaded — we arrive already logged in
+  15  |   await page.goto('/home');
+  16  | });
+  17  | 
+  18  | 
+  19  | // ─────────────────────────────────────────────────────────────────────
+  20  | // TC_PN_01 — User is taken to the Push Notification screen
+  21  | // Verifies: page heading text + URL contains the correct path
+  22  | // ─────────────────────────────────────────────────────────────────────
+  23  | test('TC_PN_01 - navigates to Push Notification list screen', { tag: ['@regression'] }, async ({ page, pushNotificationPage }) => {
+  24  | 
+  25  |   await pushNotificationPage.navigateToPushNotificationList();
+  26  | 
+  27  |   // Verify the heading on the page says "PUSH NOTIFICATION"
+  28  |   const heading = await pushNotificationPage.getPageHeading();
+  29  |   expect(heading).toBe('PUSH NOTIFICATION');
+  30  | 
+  31  |   // Verify the URL contains the expected path segment
+  32  |   // toHaveURL auto-waits — no manual sleep needed
+  33  |   await expect(page).toHaveURL(/AgencyCommunication\/list/);
+  34  | });
+  35  | 
+  36  | 
+  37  | // ─────────────────────────────────────────────────────────────────────
+  38  | // TC_PN_04 — User is taken to the Create App Notification screen
+  39  | // Verifies: URL changes to the create page after clicking Actions → Create
+  40  | // ─────────────────────────────────────────────────────────────────────
+  41  | test('TC_PN_04 - navigates to Create App Notification screen', { tag: ['@regression'] }, async ({ page, pushNotificationPage }) => {
+  42  | 
+  43  |   await pushNotificationPage.navigateToCreateNotification();
+  44  | 
+  45  |   await expect(page).toHaveURL(/AgencyCommunication\/create/);
+  46  | });
+  47  | 
+  48  | 
+  49  | // ─────────────────────────────────────────────────────────────────────
+  50  | // TC_PN_03 — Actions menu shows the correct 3 options
+  51  | // Verifies: the dropdown contains exactly Create App Notification, WhatsApp Template List, Delete
+  52  | // ─────────────────────────────────────────────────────────────────────
+  53  | test('TC_PN_03 - actions menu shows correct options', { tag: ['@regression'] }, async ({ pushNotificationPage }) => {
+  54  | 
+  55  |   // openActionsMenu opens the dropdown WITHOUT clicking any option inside it
+  56  |   await pushNotificationPage.openActionsMenu();
+  57  | 
+  58  |   const options = await pushNotificationPage.getActionMenuOptions();
+  59  | 
+> 60  |   expect(options).toEqual([
+      |                   ^ Error: expect(received).toEqual(expected) // deep equality
+  61  |     'Create App Notification',
+  62  |     'WhatsApp Template List',
+  63  |     'Delete',
+  64  |   ]);
+  65  | });
+  66  | 
+  67  | 
+  68  | // ─────────────────────────────────────────────────────────────────────
+  69  | // TC_PN_06 — Notification channel radio buttons work correctly
+  70  | // Verifies: selecting WhatsApp deselects Push, and vice versa
+  71  | // ─────────────────────────────────────────────────────────────────────
+  72  | test('TC_PN_06 - notification channel selection works', { tag: ['@regression'] }, async ({ pushNotificationPage }) => {
+  73  | 
+  74  |   await pushNotificationPage.navigateToCreateNotification();
+  75  | 
+  76  |   // Select WhatsApp — it should be selected, Push should not be
+  77  |   await pushNotificationPage.selectWhatsAppChannel();
+  78  |   expect(await pushNotificationPage.isWhatsAppSelected()).toBe(true);
+  79  |   expect(await pushNotificationPage.isPushNotificationSelected()).toBe(false);
+  80  | 
+  81  |   // Switch back to Push Notification — it should now be selected, WhatsApp should not
+  82  |   await pushNotificationPage.selectPushNotificationChannel();
+  83  |   expect(await pushNotificationPage.isPushNotificationSelected()).toBe(true);
+  84  |   expect(await pushNotificationPage.isWhatsAppSelected()).toBe(false);
+  85  | });
+  86  | 
+  87  | 
+  88  | // ─────────────────────────────────────────────────────────────────────
+  89  | // TC_PN_13 — "Send To" radio buttons are mutually exclusive
+  90  | // Verifies: selecting Upload List deselects Partner Category, and vice versa
+  91  | // ─────────────────────────────────────────────────────────────────────
+  92  | test('TC_PN_13 - send to options are mutually exclusive', { tag: ['@regression'] }, async ({ pushNotificationPage }) => {
+  93  | 
+  94  |   await pushNotificationPage.navigateToCreateNotification();
+  95  | 
+  96  |   // Select Upload List — it should be selected, Partner Category should not be
+  97  |   await pushNotificationPage.selectUploadListRadio();
+  98  |   expect(await pushNotificationPage.isUploadListSelected()).toBe(true);
+  99  |   expect(await pushNotificationPage.isPartnerCategorySelected()).toBe(false);
+  100 | 
+  101 |   // Switch back to Partner Category
+  102 |   await pushNotificationPage.selectPartnerCategoryRadio();
+  103 |   expect(await pushNotificationPage.isPartnerCategorySelected()).toBe(true);
+  104 |   expect(await pushNotificationPage.isUploadListSelected()).toBe(false);
+  105 | });
+  106 | 
+  107 | 
+  108 | // ─────────────────────────────────────────────────────────────────────
+  109 | // TC_PN_16 — Search textfield in category dropdown works
+  110 | // Verifies: typing 'Raj2024' shows the matching category in the list
+  111 | // ─────────────────────────────────────────────────────────────────────
+  112 | test('TC_PN_16 - category search textfield works', { tag: ['@regression'] }, async ({ pushNotificationPage }) => {
+  113 | 
+  114 |   await pushNotificationPage.navigateToCreateNotification();
+  115 | 
+  116 |   await pushNotificationPage.openCategoryDropdown();
+  117 | 
+  118 |   // Search for the category name and verify it appears in the results
+  119 |   const found = await pushNotificationPage.searchAndValidateCategory(PARTNER_CATEGORY_NAME);
+  120 |   expect(found).toBe(true);
+  121 | });
+  122 | 
+  123 | 
+  124 | // ─────────────────────────────────────────────────────────────────────
+  125 | // TC_PN_15 — Select All option in category dropdown works
+  126 | // Verifies: after clicking Select All, the button text shows categories were selected
+  127 | // ─────────────────────────────────────────────────────────────────────
+  128 | test('TC_PN_15 - select all categories works', { tag: ['@regression'] }, async ({ pushNotificationPage }) => {
+  129 | 
+  130 |   await pushNotificationPage.navigateToCreateNotification();
+  131 | 
+  132 |   await pushNotificationPage.openCategoryDropdown();
+  133 |   await pushNotificationPage.clickSelectAll();
+  134 | 
+  135 |   // The button text changes to show how many categories are selected
+  136 |   const text = await pushNotificationPage.getCategoryButtonText();
+  137 |   expect(text).not.toBe('');
+  138 |   expect(text.length).toBeGreaterThan(0);
+  139 | });
+  140 | 
+  141 | 
+  142 | // ─────────────────────────────────────────────────────────────────────
+  143 | // TC_PN_07 — Submit without Notification Name shows validation message
+  144 | // Verifies: browser HTML5 validation tooltip says "Please fill out this field."
+  145 | // ─────────────────────────────────────────────────────────────────────
+  146 | test('TC_PN_07 - missing notification name shows validation message', { tag: ['@regression'] }, async ({ pushNotificationPage }) => {
+  147 | 
+  148 |   await pushNotificationPage.navigateToCreateNotification();
+  149 | 
+  150 |   // Fill every field EXCEPT the notification name
+  151 |   await pushNotificationPage.enterNotificationMessage('Automation Message');
+  152 |   await pushNotificationPage.openCategoryDropdown();
+  153 |   await pushNotificationPage.searchCategory('Raj2024');
+  154 |   await pushNotificationPage.selectTargetCategory();
+  155 |   await pushNotificationPage.clickBlankSpace();
+  156 |   await pushNotificationPage.clickCustomLinkOption();
+  157 |   await pushNotificationPage.enterCustomLink();
+  158 | 
+  159 |   const futureDate = pushNotificationPage.getFutureDate(30);
+  160 |   await pushNotificationPage.enterSchedulingDateTime(futureDate, '11:30');
+```
