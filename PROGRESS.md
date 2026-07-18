@@ -1287,3 +1287,148 @@ TC_SAP_11–23 are generated via a `for` loop over a data array — avoids repea
 ---
 
 *Last updated: Session 13 — 2026-06-14*
+
+---
+
+## Session 14 — Testimonials Feature (Full CRUD Automation) & Framework Reliability Fixes
+
+### What Was Built
+
+#### 1. New Page Object (`pages/TestimonialsPage.ts`)
+
+Built from scratch (no Java project to port from, unlike the other features) — locators discovered interactively from the live app's DOM rather than an existing reference implementation.
+
+**Locator groups defined:**
+
+| Group | Locators |
+|---|---|
+| Navigation | `setupTab`, `testimonialsNewOption`, `actionsButton`, `createNewOption`, `deleteOption`, `testimonialsListBreadcrumb` |
+| Create Testimonial form | `profilePictureInput` (`#image`), `removeImageLink`, `nameInput` (`#name`), `companyInput` (`#company`), `designationInput` (`#designation`), `testimonialTextInput` (`#testimonial_msg`), `activeRadio`/`inactiveRadio`, `addTestimonialButton` |
+| Feedback after submit | `successMessage`, `invalidInputBanner`, `invalidFileTypeError` |
+| Listing table | `firstTestimonialRow` — anchored on `td.sorting_1` (a DataTables-only class) rather than an unscoped `table tbody tr`, to avoid matching hidden duplicate markup elsewhere on the page (a known pattern in this app — see Fix 2 in `Fixes.md`) |
+| Delete flow | `deleteConfirmOkButton`, `searchBox`, `noMatchingRecordsMessage` |
+
+**Static file constants:** `PNG_FILE`, `JPG_FILE`, `JPEG_FILE`, `GIF_FILE`, `INVALID_FILE` (`.webp`) — one real sample file per format the app claims to support, so every format is actually exercised rather than assumed to work because one format works.
+
+---
+
+#### 2. New Test Data Generator (`utils/testData.ts`)
+
+Small curated-pool generators (`generateTestimonialName()`, `generateCompanyName()`, `generateDesignation()`, `generateTestimonialText()`) — picks randomly from realistic, digit-free values that have special characters (periods, apostrophes, hyphens) baked in, e.g. `M.C. Sharma`, `D'Souza, Anthony`.
+
+**Key distinction (interview-relevant):** this is *test data generation*, not *data-driven testing*. Data-driven testing means one test body runs repeatedly against an external data set (a CSV/JSON file looped with `test.each`) — this framework doesn't have that pattern yet. Test data generation just means each test computes its own fresh values in code instead of hardcoding them — a much smaller thing, and all "don't hardcode" actually required here.
+
+No `Date.now()`-style uniqueness suffix was used (unlike `DOCUMENT_NAME` in earlier sessions) — real names don't contain digits, and since a newly-created testimonial always lands at the top of the listing table, tests can verify against "whatever this run generated" without needing global uniqueness.
+
+---
+
+#### 3. Test Suite (`tests/e2e/testimonials.spec.ts`) — 18 test cases
+
+| Test ID | Description | Type |
+|---|---|---|
+| TC_TST_01 | Navigate to Testimonials screen — verify URL | Navigation |
+| TC_TST_02 | Actions menu shows Create New and Delete | UI Verification |
+| TC_TST_03 | Actions → Create New lands on Add Testimonial page | Navigation |
+| TC_TST_04 | Happy path — all fields + valid image, row data matches exactly | Happy Path / E2E |
+| TC_TST_05 | Happy path — only required fields (Company/Designation blank) | Happy Path |
+| TC_TST_06 | Name blank → native HTML5 validation | Validation |
+| TC_TST_07 | Testimonial Text blank → native HTML5 validation | Validation |
+| TC_TST_08 | Cancel via breadcrumb without saving → no ghost record created | Negative / Edge Case |
+| TC_TST_09 | No profile picture uploaded → still succeeds | Edge Case |
+| TC_TST_10 | Invalid file format (`.webp`) → red banner + specific error text | Validation |
+| TC_TST_11 | Create with Status = Inactive | Functional |
+| TC_TST_12–15 | One dedicated test per allowed image format: `.png`, `.jpg`, `.jpeg`, `.gif` | Happy Path |
+| TC_TST_16 | Upload image, click "Remove", form still submits | Edge Case |
+| TC_TST_17 | Stored-XSS safety check — `<script>` payload doesn't execute | Security |
+| TC_TST_18 | Full delete flow — create, delete via checkbox → kebab → Delete → OK, confirm via search | Functional / E2E |
+
+**Environment:** run against **prod** (`app.technochimes.com`) specifically, per explicit choice — this feature was verified working there.
+
+---
+
+### Key Decisions & Fixes (Interview Reference)
+
+#### Fix 22 — KTMenu dropdown unreliable on a single click (3rd occurrence of this pattern)
+Same root cause as Fix 8 (`DocumentLibraryPage`) and Fix 12 (`PushNotificationPage`) — clicking a Metronic KTMenu trigger (`data-kt-menu-trigger="click"`) doesn't reliably open the dropdown on the first try. `openActionsMenu()` now uses the same `expect(async () => {...}).toPass({ timeout: 30000 })` retry pattern already proven twice elsewhere, instead of inventing a new fix.
+
+**Interview talking point:** *"Recognizing a repeated failure pattern across a codebase matters as much as fixing it — this was the third page object to hit the exact same KTMenu timing issue, so I reused the proven idiom rather than writing a new one."*
+
+---
+
+#### Fix 23 — `auth.setup.ts` flaky login: an SPA hydration race
+Login passed most runs but occasionally left both fields empty with no error. Root cause: `waitFor({ state: 'visible' })` only proves an element exists *at that instant* — it doesn't prove the Angular app has finished bootstrapping. If Angular re-rendered the login form's DOM subtree *after* `fill()` already typed into the old node, the value was silently wiped with no error thrown (the fill genuinely succeeded on whatever existed at that moment).
+
+**Fix:** wrapped the fill step in a retry-and-verify loop — fill both fields, read them back with `.inputValue()`, retry if either doesn't match what was typed.
+
+**Interview talking point:** *"The general fix for 'flaky because of async app state' isn't a fixed `waitForTimeout` guess — it's verify the resulting state and retry if it didn't stick. `expect().toPass()` is Playwright's tool for exactly that, and it's the same principle behind Fix 22's KTMenu fix — two different symptoms, same root cause category (trusting an action instead of verifying its effect)."*
+
+---
+
+#### Fix 24 — Prod login blocked by reCAPTCHA (not fixable by better locators/retries)
+Switching to `ENV=prod` to test on `app.technochimes.com`, automated login failed with "invalid recaptcha." Unlike Fix 22/23, no amount of retrying fixes this — reCAPTCHA exists specifically to detect and block scripted browser interaction, and the app is *correctly* identifying the traffic as non-human.
+
+**Workaround:** used `npx playwright codegen --save-storage=auth.json <url>` for its session-capture side effect — a human logs in manually (solving the CAPTCHA themselves) and closes the browser, and Playwright writes that session's cookies/localStorage into `auth.json`. Since `chromium` has `dependencies: ['setup']` in `playwright.config.ts`, a normal run would immediately re-trigger the blocked automated login and overwrite this — so runs against prod use `--no-deps` to skip that dependency and reuse the manually-captured session.
+
+**Limitation:** the session expires eventually and the manual `codegen` login has to be repeated — this is a stopgap, not a permanent fix. Real fixes: (1) get reCAPTCHA disabled/whitelisted for a known test account or IP (the standard professional approach), or (2) bypass the UI login via a direct API call, since reCAPTCHA is typically enforced on the web form specifically, not always the underlying login API (ties into the already-queued "API-based login" idea from an earlier session).
+
+**Interview talking point:** *"The correct answer to 'how do you handle CAPTCHA in automated tests' isn't a clever bypass — it's recognizing CAPTCHA as a deliberate adversary to automation and fixing it at the process/environment level, not the test-code level."*
+
+---
+
+#### Viewport fix — fixed nav items unclickable due to default 1280×720 viewport
+`TC_TST_03`'s "Setup" nav click was intermittently unclickable. Root cause: this app's full top nav (Setup, AI, Automation, CRM, Campaigns, Journey, Conversion, Communication, Pipeline, Enablement, Dashboard, Google My Business...) doesn't fit in Playwright's default 1280×720 viewport (inherited from `devices['Desktop Chrome']`) and silently collapses/hides items instead of erroring. Confirmed directly — manually zooming Chrome to 90% (which increases effective CSS pixels available) made every test pass reliably.
+
+**First attempt (`viewport: null` + `--start-maximized`)** tied available space to the actual physical monitor resolution — inconsistent across machines and meaningless in headless CI. Also hit a Playwright validation error: `devices['Desktop Chrome']` bundles `deviceScaleFactor: 1` alongside its viewport, and Playwright rejects `deviceScaleFactor` when `viewport` is `null` (nothing left to scale).
+
+**Final fix:** explicit fixed viewport `{ width: 1920, height: 1080 }` in both the shared `use` block and re-declared inside the `chromium` project (since `...devices['Desktop Chrome']` there would otherwise reintroduce 1280×720). Deterministic across any machine, including headless CI.
+
+---
+
+#### Locator fixes discovered via real test runs (not assumptions)
+
+- **`invalidInputBanner`** — `getByText('There were some problems with your input.', { exact: true })` returned "element(s) not found" despite the text being visibly on screen. The DOM snapshot showed the text as a bare text node sharing a parent `<div>` with a sibling `<ul>` error list — that parent's *full* text content includes the list's text too, so no element's exact text equals just the banner message. Fix: dropped `exact: true` (non-exact `getByText` matches on substring, which handles this correctly).
+- **`testimonialsHeading`** — `getByText('Add Testimonial', { exact: true })` hit a strict-mode violation: the exact text "Add Testimonial" appears twice on the create-testimonial page — once as the heading (`<span class="fs-2 fw-bolder">`) and once as the submit button's own label. Fix: scoped the locator to `page.locator('span.fs-2.fw-bolder', { hasText: 'Add Testimonial' })`.
+
+**Interview talking point:** *"Both of these were only discoverable by actually running the tests and reading Playwright's captured DOM snapshot on failure (`error-context.md` + the auto screenshot) — no amount of reading the markup up front would have caught 'this exact text also appears on the submit button.'"*
+
+---
+
+#### Real app behavior discovered through testing (not test bugs)
+
+- **Profile Picture's asterisk is misleading** — `#image` has no `required` HTML attribute despite the label showing `Profile Picture*`; a testimonial can be created with no image at all (TC_TST_09 exists specifically to lock in this behavior).
+- **XSS defense is character-stripping, not HTML-encoding** (TC_TST_17) — submitting `<script>alert('xss')</script>` as Testimonial Text comes back as `scriptalert'xss'script`: the app strips `< > ( ) /` outright rather than encoding them into `&lt;script&gt;`. The test's assertion was rewritten to check the actual security property (`not.toContain('<script>')` + no dialog fired) instead of an exact string match that assumed the wrong defense mechanism.
+- **Possible real bug found (not yet covered by a dedicated test):** on the invalid-file-type re-render (TC_TST_10), the server echoed the submitted Name value into *both* the Company and Designation fields as well — looks like a copy-paste bug in the backend's form re-population logic after a validation failure. Flagged for the app's dev team; not yet turned into its own regression test.
+
+---
+
+### Concepts Demonstrated (New This Session)
+
+| Concept | Where |
+|---|---|
+| SPA hydration race — why "visible" isn't proof of app readiness | Fix 23, `auth.setup.ts` |
+| CAPTCHA as a deliberate automation adversary — process-level fix, not code-level | Fix 24 |
+| Manual session capture via `codegen --save-storage` | Fix 24, reusable for any future feature needing login |
+| `--no-deps` to skip a Playwright project dependency | Running tests against a manually-captured `auth.json` |
+| `deviceScaleFactor` vs `viewport: null` incompatibility | `playwright.config.ts` |
+| Deterministic fixed viewport vs OS-window-dependent sizing | `playwright.config.ts` |
+| `getByText` exact-match failure modes (sibling text, duplicate text) | `invalidInputBanner`, `testimonialsHeading` |
+| Reading `el.validationMessage` for native browser validation (can't be located as visible DOM text) | `getNameValidationMessage()`, `getTestimonialTextValidationMessage()` |
+| Test data generation vs data-driven testing (the actual distinction) | `utils/testData.ts` |
+| Dialog listener to prove a script did/didn't execute (XSS safety test) | TC_TST_17 |
+| DataTables-specific class (`sorting_1`) as a robust anchor over an unscoped table selector | `firstTestimonialRow` |
+| `--grep` with a regex alternation to run an arbitrary subset of tests by ID | `--grep "TC_TST_(01|03|10|17) -"` |
+
+---
+
+### Current State
+
+- **Page Objects:** 4 (`PushNotificationPage`, `DocumentLibraryPage`, `SocialAutoPostPage`, `TestimonialsPage`)
+- **Test files:** 4 (adds `testimonials.spec.ts`)
+- **Test cases:** 65 total (14 push notification + 22 document library + 11 social auto-post + 18 testimonials)
+- **Environments supported:** 4 (dev, preprod, prod, digipulse) — Testimonials specifically verified on prod
+- **Fixes this session:** Fix 22 (KTMenu retry, 3rd occurrence), Fix 23 (login SPA race), Fix 24 (prod reCAPTCHA workaround), viewport fix, 2 locator fixes (`invalidInputBanner`, `testimonialsHeading`)
+- **Pending:** Possible dedicated regression test for the Company/Designation echo bug found in TC_TST_10; reCAPTCHA long-term fix (whitelist or API login) not yet pursued
+
+---
+
+*Last updated: Session 14 — 2026-07-18*

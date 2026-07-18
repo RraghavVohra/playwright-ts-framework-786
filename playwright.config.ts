@@ -57,6 +57,15 @@ export default defineConfig({
     // false = browser window is VISIBLE when tests run
     // Change to true if you want tests to run in the background (CI mode)
     headless: false,
+
+    // This app's full top nav (Setup, AI, Automation, CRM, Campaigns, Journey, Conversion,
+    // Communication, Pipeline, Enablement, Dashboard, Google My Business...) doesn't fit in
+    // the default 1280x720 viewport and silently collapses/hides some items instead of
+    // erroring — which is why "Setup" and "Testimonials New" were sometimes unclickable.
+    // A fixed, generous size here is deterministic across machines (unlike relying on the
+    // OS window being maximized, which depends on actual screen resolution and doesn't
+    // apply at all in headless CI runs).
+    viewport: { width: 1920, height: 1080 },
   },
 
   // projects define different "modes" tests can run in
@@ -84,6 +93,11 @@ export default defineConfig({
       use: {
         // Use the default Desktop Chrome browser settings
         ...devices['Desktop Chrome'],
+
+        // devices['Desktop Chrome'] above sets its own fixed viewport (1280x720) —
+        // re-declaring it here after the spread overrides that, so this project keeps
+        // the wider viewport set in the shared `use` block instead.
+        viewport: { width: 1920, height: 1080 },
 
         // THIS IS THE KEY LINE — instead of logging in again at the start of every test,
         // Playwright loads the saved session from auth.json

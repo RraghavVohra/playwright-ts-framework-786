@@ -14,12 +14,21 @@ setup('authenticate', async ({ page }) => {
   // The app is Angular-based and takes a moment to render the login form
   await page.locator('#username').waitFor({ state: 'visible' });
 
-  // Step 3: Fill in the username
-  // fill() clears the field first, then types — more reliable than click + type
-  await page.locator('#username').fill(USER_EMAIL);
+  // Step 3 & 4: Fill in username and password, then verify the values actually stuck.
+  // Angular re-renders the login form shortly after its first paint (SPA bootstrap) —
+  // #username can be "visible" before that re-render happens, so a fill() here can get
+  // silently wiped moments later with no error thrown. Same race class as the KTMenu
+  // dropdown fixed in TestimonialsPage — don't trust one action, verify and retry.
+  await expect(async () => {
+    await page.locator('#username').fill(USER_EMAIL);
+    await page.locator('#password').fill(USER_PASSWORD);
 
-  // Step 4: Fill in the password
-  await page.locator('#password').fill(USER_PASSWORD);
+    const usernameValue = await page.locator('#username').inputValue();
+    const passwordValue = await page.locator('#password').inputValue();
+    if (usernameValue !== USER_EMAIL || passwordValue !== USER_PASSWORD) {
+      throw new Error('Login fields were cleared before submit — retrying');
+    }
+  }).toPass({ timeout: 30000 });
 
   // Step 5: Click the submit button
   // The xpath gets the first submit button on the page

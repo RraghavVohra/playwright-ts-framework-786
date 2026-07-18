@@ -2,6 +2,87 @@
 
 ---
 
+## Fix 24 — Prod login blocked by reCAPTCHA: automated `auth.setup.ts` cannot log in on `app.technochimes.com`
+
+**File:** `auth.setup.ts`, `.env`, `auth.json` (workflow change, not a code fix)
+
+**Problem:** Switching `.env` to `ENV=prod` to test the Testimonials feature on production, `auth.setup.ts` failed at `page.waitForURL('**/AssetLibrary')` with `Target page, context or browser has been closed`. The real cause wasn't a locator or timing bug (unlike Fix 22/23) — prod's login form is protected by **reCAPTCHA**, which rejected the automated submission with "invalid recaptcha." This is a fundamentally different problem: reCAPTCHA exists specifically to detect and block scripted/headless browser interaction (missing mouse entropy, timing patterns, automation fingerprints). No amount of retrying or waiting fixes this, because the app is *correctly* identifying the traffic as non-human and refusing it on purpose. Attempting to defeat it (CAPTCHA-solving services, fingerprint spoofing, etc.) is generally against the CAPTCHA provider's terms and isn't something a legitimate test framework should do.
+
+**Fix (workaround, not a permanent solution):** Used Playwright's `codegen` tool for its session-capture side effect rather than its usual code-recording purpose:
+```
+npx playwright codegen --save-storage=auth.json https://app.technochimes.com
+```
+This opens a real, visible browser. A human (not a script) logs in manually — typing credentials and solving the reCAPTCHA — then closes the window. On close, Playwright writes that session's cookies + localStorage into `auth.json`, the same file `auth.setup.ts` normally produces automatically.
+
+Because `playwright.config.ts` declares `dependencies: ['setup']` on the `chromium` project, a normal `npx playwright test` run would automatically re-trigger `auth.setup.ts` first — which would immediately fail at the CAPTCHA step again and overwrite the manually-captured session. To prevent that, tests must be run with:
+```
+npx playwright test tests/e2e/testimonials.spec.ts --project=chromium --no-deps
+```
+`--no-deps` tells Playwright to skip running the `setup` project's dependency and just use whatever `auth.json` is already on disk.
+
+**Limitation:** the captured session expires whenever the app's session/cookie lifetime runs out, at which point the manual `codegen` login has to be repeated. This is a stopgap, not a fix — the real fixes are either (1) get reCAPTCHA disabled/whitelisted for a known test account or IP on prod (the standard professional approach), or (2) bypass the UI login entirely via a direct API-based login (already a queued idea for a different reason — see the "API-based login" discussion from an earlier session) — worth checking since reCAPTCHA is typically enforced on the web form specifically, not always on the underlying login API.
+
+**Interview angle:** This is the right example to reach for when asked "how do you handle CAPTCHA in automated tests" — the correct answer isn't a clever workaround to defeat it, it's recognizing that CAPTCHA is a deliberate adversary to automation and the fix belongs at the process/environment level (test-account whitelisting, provider test keys, or an API-level auth path), not the test-code level. It's also a good example of `codegen` being useful for something other than its headline feature (recording actions) — `--save-storage` turns it into a one-time manual session-capture tool, and understanding *why* `--no-deps` is needed here requires understanding how `dependencies` between Playwright projects work, not just what the flag does.
+
+---
+
+## Fix 23 — auth.setup.ts: Flaky login caused by an SPA hydration race
+
+**File:** `auth.setup.ts`
+
+**Problem:** Login was flaky — it passed most runs but occasionally got stuck on the login screen with both fields left empty, no error thrown. The original code did:
+```ts
+await page.locator('#username').waitFor({ state: 'visible' });
+await page.locator('#username').fill(USER_EMAIL);
+await page.locator('#password').fill(USER_PASSWORD);
+```
+This looks safe — it waits for the field to be visible before typing. But **"visible" only proves the element exists at that instant; it doesn't prove the app is done initializing.** Angular apps commonly paint an initial shell/skeleton fast, then bootstrap the real interactive SPA a moment later, which can replace the entire form's DOM subtree. If that re-render happens *after* `fill()` already typed into the old node, the value is silently wiped — Playwright doesn't error, because the fill genuinely succeeded on the element that existed at that moment. It's a straight race between "Angular finishes bootstrapping" and "Playwright finishes typing," so the outcome varies run to run — the textbook definition of a flaky test.
+
+**Fix:** Wrapped the fill step in a retry-and-verify loop: fill both fields, then read them back with `.inputValue()`, and if either doesn't match what was typed (meaning the form got wiped mid-flight), retry the whole fill instead of assuming it stuck.
+```ts
+await expect(async () => {
+  await page.locator('#username').fill(USER_EMAIL);
+  await page.locator('#password').fill(USER_PASSWORD);
+  const usernameValue = await page.locator('#username').inputValue();
+  const passwordValue = await page.locator('#password').inputValue();
+  if (usernameValue !== USER_EMAIL || passwordValue !== USER_PASSWORD) {
+    throw new Error('Login fields were cleared before submit — retrying');
+  }
+}).toPass({ timeout: 30000 });
+```
+
+**Interview angle:** This is the general fix for any "flaky because of async app state" bug, not just this one. The wrong instinct is to add a fixed `waitForTimeout(2000)` — that's a guess, and it's either too short (still flaky) or too long (slows every run). The right instinct is: **don't trust that an action worked — verify the resulting state, and retry if it didn't.** `expect(...).toPass()` is Playwright's built-in tool for exactly this. Good follow-up talking point: *why* did `waitFor({ state: 'visible' })` fail to protect against this? Because "visible" is a snapshot check, not a guarantee of stability — Playwright's actionability checks (visible, stable, enabled, receives events) are evaluated once at the moment of the action, not continuously across a background re-render.
+
+---
+
+## Fix 22 — TC_TST_02 / TC_TST_03: Actions dropdown (KTMenu) unreliable on a single click
+
+**File:** `pages/TestimonialsPage.ts`
+
+**Problem:** `TC_TST_02` failed with `expect(locator).toBeVisible()` timing out on the "Create New" option — the locator resolved to a real element, but it stayed `hidden` for the full 15s. `TC_TST_03` failed downstream of the same method. The root cause: the Actions button is a Metronic **KTMenu** widget (`data-kt-menu-trigger="click"`), a JS-driven dropdown, and `openActionsMenu()` did a single `.click()` with no confirmation that the menu actually opened:
+```ts
+async openActionsMenu(): Promise<void> {
+  await this.actionsButton.click();
+}
+```
+This exact failure mode had already happened twice before in this project — `DocumentLibraryPage`'s Upload option (Fix 8) and `PushNotificationPage`'s Create Notification option (Fix 12) — both because a single click on a KTMenu trigger isn't reliably followed by the dropdown opening. `TestimonialsPage` was simply the third page object to hit the same underlying issue.
+
+**Fix:** Replaced the bare click with the same retry-until-confirmed pattern already established elsewhere in the codebase — check if the target option is visible; if not, click the Actions button again; keep retrying for up to 30s:
+```ts
+async openActionsMenu(): Promise<void> {
+  await expect(async () => {
+    if (!(await this.createNewOption.isVisible())) {
+      await this.actionsButton.click();
+    }
+    await this.createNewOption.waitFor({ state: 'visible', timeout: 2000 });
+  }).toPass({ timeout: 30000 });
+}
+```
+
+**Interview angle:** Two things worth being able to say out loud. First, **recognize repeated failure patterns across a codebase** — this was the third occurrence of "KTMenu dropdown doesn't reliably open on one click," and the fix was to reuse the exact idiom already proven twice, not invent a new one. Consistency across a test suite matters as much as the fix itself. Second, this is the *same underlying principle* as Fix 23 above (the login race): **a single action is not proof of the resulting state — always verify, then retry if the verification fails.** Two different symptoms (empty login fields vs. a hidden dropdown option), same root cause category (trusting an action instead of verifying its effect), same fix shape (`expect(...).toPass()`).
+
+---
+
 ## Fix 1 — TC_PN_19: Missing image upload caused `#customlink_error` to never appear
 
 **File:** `tests/e2e/push-notification.spec.ts`
