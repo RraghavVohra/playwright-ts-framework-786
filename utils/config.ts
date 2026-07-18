@@ -38,6 +38,10 @@ export const DOCUMENT_NAME = process.env.DOCUMENT_NAME ?? 'AutoDoc';
 // Must match a hashtag that exists in the autocomplete on your target environment
 export const HASHTAG_TEXT = process.env.HASHTAG_TEXT ?? 'teaser';
 
+// Base name prefix for Banner asset uploads in Banners tests
+// Date.now() is appended in each test to make every name unique across runs
+export const BANNER_NAME = process.env.BANNER_NAME ?? 'AutoBanner';
+
 // Social Auto-post config
 // social.partner.search — term typed into the category search box to filter results
 // social.partner.name   — exact visible label text of the category to select
