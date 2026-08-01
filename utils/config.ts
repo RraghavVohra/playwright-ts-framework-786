@@ -42,6 +42,10 @@ export const HASHTAG_TEXT = process.env.HASHTAG_TEXT ?? 'teaser';
 // Date.now() is appended in each test to make every name unique across runs
 export const BANNER_NAME = process.env.BANNER_NAME ?? 'AutoBanner';
 
+// Base name prefix for Social Post asset uploads (Asset Library "Social Post" type)
+// Date.now() is appended in each test to make every name unique across runs
+export const SOCIAL_POST_ASSET_NAME = process.env.SOCIAL_POST_ASSET_NAME ?? 'AutoSocialPost';
+
 // Social Auto-post config
 // social.partner.search — term typed into the category search box to filter results
 // social.partner.name   — exact visible label text of the category to select
