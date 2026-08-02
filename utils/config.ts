@@ -46,6 +46,22 @@ export const BANNER_NAME = process.env.BANNER_NAME ?? 'AutoBanner';
 // Date.now() is appended in each test to make every name unique across runs
 export const SOCIAL_POST_ASSET_NAME = process.env.SOCIAL_POST_ASSET_NAME ?? 'AutoSocialPost';
 
+// Base name prefix for Brochure asset uploads (Asset Library "Brochure" type)
+// Date.now() is appended in each test to make every name unique across runs
+export const BROCHURE_NAME = process.env.BROCHURE_NAME ?? 'AutoBrochure';
+
+// Category and hashtag used when creating a Brochure asset — these are environment-specific
+// data (must exist on whichever server ENV points to), same reasoning as
+// PARTNER_CATEGORY_NAME/HASHTAG_TEXT above. Confirmed to exist on digipulse; override in
+// .env if these don't exist on prod/preprod/dev.
+export const BROCHURE_CATEGORY = process.env.BROCHURE_CATEGORY ?? 'Savings';
+export const BROCHURE_HASHTAG  = process.env.BROCHURE_HASHTAG  ?? 'Rag09';
+
+// A second category/hashtag, used by the multi-select test — confirmed to exist alongside
+// BROCHURE_CATEGORY/BROCHURE_HASHTAG on digipulse.
+export const BROCHURE_CATEGORY_2 = process.env.BROCHURE_CATEGORY_2 ?? 'Home Insurance';
+export const BROCHURE_HASHTAG_2  = process.env.BROCHURE_HASHTAG_2  ?? 'Astounding';
+
 // Social Auto-post config
 // social.partner.search — term typed into the category search box to filter results
 // social.partner.name   — exact visible label text of the category to select

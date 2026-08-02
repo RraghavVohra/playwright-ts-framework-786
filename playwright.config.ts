@@ -66,6 +66,21 @@ export default defineConfig({
     // OS window being maximized, which depends on actual screen resolution and doesn't
     // apply at all in headless CI runs).
     viewport: { width: 1920, height: 1080 },
+
+    launchOptions: {
+      // Adds a delay (ms) after every Playwright action — without this, actions fire
+      // faster than a human can visually follow. Purely for watching runs; doesn't affect
+      // headless CI runs in any meaningful way since nobody's watching those live.
+      slowMo: 500,
+
+      // Anchors the browser window to the screen's top-left corner. The 1920x1080 viewport
+      // is wider than a 1366x768 screen, so the window doesn't fully fit either way — but
+      // without this, the OS was positioning it such that the LEFT side fell off-screen,
+      // showing a shifted/cropped middle section instead of the natural top-left start of
+      // the page. Anchoring to (0,0) means only the right/bottom edges run off-screen
+      // instead, which reads much closer to how the page normally looks.
+      args: ['--window-position=0,0'],
+    },
   },
 
   // projects define different "modes" tests can run in
