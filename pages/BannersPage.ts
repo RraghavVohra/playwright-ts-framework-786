@@ -147,8 +147,10 @@ export class BannersPage {
     if (box) {
       const startX = box.x + box.width / 2;
       const startY = box.y + box.height / 2;
-      const offsetX = box.width * 0.05;
-      const offsetY = box.height * 0.05;
+      // 5% was enough for a 1.78 aspect-ratio image (TC_BNR_02) but not a 2.0 ratio one
+      // (TC_BNR_03 — "Something Went Wrong" on submit) — 2% holds up across both.
+      const offsetX = box.width * 0.02;
+      const offsetY = box.height * 0.02;
       await this.page.mouse.move(startX, startY);
       await this.page.mouse.down();
       await this.page.mouse.move(startX + offsetX, startY + offsetY);

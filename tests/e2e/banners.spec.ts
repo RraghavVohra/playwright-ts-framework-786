@@ -29,7 +29,8 @@ test('TC_BNR_01 - creates a Banner and confirms it appears in the Asset Library'
 
   await expect(page).toHaveURL(/home\/new-asset\/base-asset-details/);
   await bannersPage.uploadThumbnail(BannersPage.PNG_FILE);
-  await bannersPage.dragCropSelection();
+  // No drag needed — the crop tool's default selection already matches the required
+  // exact pixel dimensions; dragging it risks throwing that off (see Fixes.md Fix 27).
   await bannersPage.clickCropAndSubmit();
   // "Crop & Submit" only finalizes the crop tool inline — it doesn't navigate anywhere.
   // The same "Save & Proceed" button used on the previous step is what actually advances
@@ -67,7 +68,8 @@ test('TC_BNR_02 - creates a Banner using a .jpg image and confirms it appears in
 
   await expect(page).toHaveURL(/home\/new-asset\/base-asset-details/);
   await bannersPage.uploadThumbnail(BannersPage.JPG_FILE);
-  await bannersPage.dragCropSelection();
+  // No drag needed — the crop tool's default selection already matches the required
+  // exact pixel dimensions; dragging it risks throwing that off (see Fixes.md Fix 27).
   await bannersPage.clickCropAndSubmit();
   await bannersPage.clickSaveAndProceed();
 
@@ -98,7 +100,8 @@ test('TC_BNR_03 - creates a Banner using a .jpeg image and confirms it appears i
 
   await expect(page).toHaveURL(/home\/new-asset\/base-asset-details/);
   await bannersPage.uploadThumbnail(BannersPage.JPEG_FILE);
-  await bannersPage.dragCropSelection();
+  // No drag needed — the crop tool's default selection already matches the required
+  // exact pixel dimensions; dragging it risks throwing that off (see Fixes.md Fix 27).
   await bannersPage.clickCropAndSubmit();
   await bannersPage.clickSaveAndProceed();
 
@@ -129,7 +132,8 @@ test('TC_BNR_04 - creates a Banner using a .webp image and confirms it appears i
 
   await expect(page).toHaveURL(/home\/new-asset\/base-asset-details/);
   await bannersPage.uploadThumbnail(BannersPage.WEBP_FILE);
-  await bannersPage.dragCropSelection();
+  // No drag needed — the crop tool's default selection already matches the required
+  // exact pixel dimensions; dragging it risks throwing that off (see Fixes.md Fix 27).
   await bannersPage.clickCropAndSubmit();
   await bannersPage.clickSaveAndProceed();
 

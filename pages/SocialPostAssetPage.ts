@@ -31,8 +31,15 @@ export class SocialPostAssetPage {
   private cropSelection: Locator;
   private cropAndSubmitButton: Locator;
 
-  // Publish Asset page — has more fields than Banners' equivalent page
+  // Publish Asset page — has more fields than Banners' equivalent page.
+  // Different combinations of platform checkboxes get checked depending on which channels
+  // the content is for — TC_SPA_01 uses only WhatsApp, TC_SPA_02 uses Social/Facebook/
+  // Twitter/LinkedIn instead.
   private whatsappPlatformCheckbox: Locator;
+  private socialPlatformCheckbox: Locator;
+  private facebookPlatformCheckbox: Locator;
+  private twitterPlatformCheckbox: Locator;
+  private linkedInPlatformCheckbox: Locator;
   private selectPartnersButton: Locator;
   // aria-autocomplete="list" is a deliberate accessibility attribute react-select always
   // sets — unlike its auto-generated id (confirmed to shift between page loads elsewhere
@@ -68,6 +75,10 @@ export class SocialPostAssetPage {
     this.cropAndSubmitButton = page.getByRole('button', { name: 'Crop & Submit' });
 
     this.whatsappPlatformCheckbox = page.locator('input[name="wh-platform"]');
+    this.socialPlatformCheckbox = page.locator('input[name="so-platform"]');
+    this.facebookPlatformCheckbox = page.locator('input[name="fb-platform"]');
+    this.twitterPlatformCheckbox = page.locator('input[name="tw-platform"]');
+    this.linkedInPlatformCheckbox = page.locator('input[name="in-platform"]');
     this.selectPartnersButton = page.getByRole('button', { name: 'Select Partners' });
     this.partnerSearchInput = page.locator('input[aria-autocomplete="list"]');
     this.coBrandingPushCheckbox = page.getByRole('checkbox', { name: 'Co-Branding Push' });
@@ -174,6 +185,22 @@ export class SocialPostAssetPage {
 
   async selectWhatsAppPlatform(): Promise<void> {
     await this.whatsappPlatformCheckbox.check();
+  }
+
+  async selectSocialPlatform(): Promise<void> {
+    await this.socialPlatformCheckbox.check();
+  }
+
+  async selectFacebookPlatform(): Promise<void> {
+    await this.facebookPlatformCheckbox.check();
+  }
+
+  async selectTwitterPlatform(): Promise<void> {
+    await this.twitterPlatformCheckbox.check();
+  }
+
+  async selectLinkedInPlatform(): Promise<void> {
+    await this.linkedInPlatformCheckbox.check();
   }
 
   // Opens the react-select partner dropdown, filters by searchTerm, clicks the option
