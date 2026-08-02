@@ -2,6 +2,78 @@
 
 ---
 
+## Fix 30 — Brochure: dual-platform save is genuinely slow — default 15s assertion timeout isn't enough
+
+**File:** `tests/e2e/brochure.spec.ts`
+
+**Problem:** `TC_BRO_01` (Mobile App + Microsite together) failed at `expect(page).toHaveURL(/publish-asset/)` — 18 retries over 15s, still on `base-asset-details`. The screenshot showed a green "Content saved successfully!" toast and a greyed-out "Save & Proceed" button — the save had genuinely succeeded, it just hadn't navigated yet. Manually reproducing the same flow confirmed: saving two thumbnails (one per platform) takes longer than the default assertion window, and the toast has its own timer that persists across the page transition.
+
+**Fix:** Extended just that one `toHaveURL` assertion to `{ timeout: 45 * 1000 }`, rather than raising the global `expect.timeout` for every test in the project. Confirmed as expected slow behavior (not a bug) before extending the timeout — same discipline as Fix 18's global timeout raise, but scoped to the one assertion that actually needs it.
+
+**Interview angle:** The temptation here is to just retry blindly on any URL-mismatch failure. The right first step is confirming *why* it's slow — is this a genuine processing delay (extend the timeout) or a real stuck state (something else is broken)? Manually reproducing the exact scenario before touching the test code is what tells them apart.
+
+---
+
+## Fix 29 — Brochure: Content Type (native `<select>`) didn't register without a follow-up click
+
+**File:** `pages/BrochurePage.ts`
+
+**Problem:** `selectContentType()` used `.selectOption({ label: contentType })` on the native `<select>` (confirmed via codegen: `.selectOption('95')`), and the test passed without error. But checking the actual created Brochure afterward, Content Type was blank — the app never registered the selection. The original codegen recording had a second step immediately after `.selectOption()`: `page.getByText('Content Type', { exact: true }).click()`. An earlier version of this method dropped that click, assuming it was just an incidental "close" click like the one Categories/Hashtags use. It wasn't incidental — `.selectOption()` sets the native `<select>`'s value, but the app's own state apparently needs that follow-up click to actually pick the change up (same "commit" pattern as the dropdown-close mechanics elsewhere in this app).
+
+**Fix:** Added the click back: `await this.contentTypeDropdown.selectOption({ label: contentType }); await this.page.getByText('Content Type', { exact: true }).click();`
+
+**Interview angle:** Playwright reporting success on an action (no thrown error) is proof the *DOM-level* action completed — it is not proof the *application* registered the intended state change. The only way this was caught was by checking the actual created record, not just trusting a green test run. This is the same lesson as Fix 22/23 (verify effects, don't trust actions) applied to a new failure shape — a false negative (green test, wrong real-world outcome) instead of a false positive (red test, working feature).
+
+---
+
+## Fix 28 — Brochure: duplicate hidden file input once multiple distribution platforms are selected
+
+**File:** `pages/BrochurePage.ts`
+
+**Problem:** `uploadThumbnail()` failed with `strict mode violation: locator('input[type="file"]') resolved to 2 elements`. Root cause: Brochure needs one thumbnail per selected distribution platform (Mobile App, Microsite). When both are checked, the page renders **two** hidden file inputs at once — one per platform's thumbnail round — even though only one "Upload Thumbnail" section is visually active at a time. The generic `input[type="file"]` locator (which worked fine for every single-file-input page in this framework) became ambiguous the moment a second platform was added.
+
+**Fix:** Scoped the locator to `.first()` — the Mobile round is the only one that receives a fresh file upload; the second platform's round reuses the same file instead (see the two-round crop flow below).
+
+**Interview angle:** A locator that's correct in isolation can silently become wrong once the page grows a second instance of the same element shape. This wasn't a locator-writing mistake — it was a locator that was correct when it was written and became stale as the page's conditional rendering logic was better understood.
+
+---
+
+## Fix 27 — Banners: ReactCrop drag distance needs to scale with the image, not a fixed pixel offset
+
+**File:** `pages/BannersPage.ts` (pattern reused in `SocialPostAssetPage.ts`, `BrochurePage.ts`)
+
+**Problem:** `TC_BNR_02` (jpg, 640×360, 1.78 aspect ratio) passed after switching `dragCropSelection()`'s drag from a fixed `+40px` offset to `5%` of the crop box's own size. `TC_BNR_03` (jpeg, 800×400, 2.0 aspect ratio — a more extreme, panoramic image) still failed with a red "Something Went Wrong" toast on submit, even at 5%. The safe margin before the crop selection hits the image's edge shrinks as the aspect ratio gets more extreme — a percentage that's safe for one image's proportions isn't automatically safe for a more stretched one.
+
+**Fix:** Reduced the drag to a more conservative `2%` of the crop box's own dimensions, which held up across the aspect ratios tested. (Noted as still an empirically-tuned number, not a mathematically derived safe bound — a more rigorous fix would measure the actual available room between the crop selection's edge and its container's edge and drag a fraction of *that*, but 2% has been sufficient in practice so far.)
+
+**Interview angle:** Two wrong guesses (fixed pixel offset, then a too-large percentage) before landing on one that held — worth being honest that this is an empirically-tuned constant, not a proven-correct one, if it's ever pushed further (e.g. an even more extreme aspect ratio image) it may need revisiting with the more rigorous "measure the actual margin" approach instead of another guessed percentage.
+
+---
+
+## Fix 26 — Banners/Social Post/Brochure: partner multi-select dropdown needs a forced click to close
+
+**File:** `pages/BannersPage.ts` (pattern reused in `SocialPostAssetPage.ts`, `BrochurePage.ts`)
+
+**Problem:** After selecting a partner from the react-select multi-select, the dropdown stayed open and physically overlapped the "Publish" button, blocking every click attempt for the full 90s test timeout (`subtree intercepts pointer events`). `Escape` didn't close it — this is a genuine multi-select (`smartFolder-multiSelect`), which intentionally stays open after one selection since the user might want to pick more.
+
+**Fix:** This component implements "click outside to close" via an invisible overlay `<div>` covering the page. Clicking a stable, visible element outside the dropdown's bounds (the "Publish Setup" heading) triggers that close behavior — but Playwright's normal `.click()` refuses to fire because it detects that same overlay "in the way." Since the overlay *is* the thing that needs to receive the click, `{ force: true }` bypasses Playwright's safety check and lets the click land on it. Added an explicit `waitFor({ state: 'hidden' })` on the search input afterward to confirm the dropdown actually closed before proceeding.
+
+**Interview angle:** Playwright's actionability check ("nothing should be covering the target") is usually protecting you from a genuine mis-click. Here it was flagging the exact mechanism the page relies on — recognizing that distinction (is the interception a bug, or is it the intended behavior of the page) is what tells you whether `{ force: true }` is the right call or a way to paper over a real problem.
+
+---
+
+## Fix 25 — Banners: "Crop & Submit" doesn't navigate — a separate "Save & Proceed" click actually advances the wizard
+
+**File:** `pages/BannersPage.ts` (pattern reused in `SocialPostAssetPage.ts`, `BrochurePage.ts`)
+
+**Problem:** After cropping the thumbnail and clicking "Crop & Submit", `expect(page).toHaveURL(/publish-asset/)` failed — still on `base-asset-details`. "Crop & Submit" only finalizes the crop tool inline; it doesn't navigate anywhere. This had actually already been stated in the very first description of the flow ("upload the thumbnail, then click save and proceed") — the mistake was treating "Crop & Submit" as if it were that same button under a different name for this step, rather than a separate action that still needs the regular "Save & Proceed" click after it.
+
+**Fix:** Added a `clickSaveAndProceed()` call immediately after `clickCropAndSubmit()`.
+
+**Interview angle:** The answer to "what button advances the wizard" had already been given, before the crop-specific question was even asked — the fix here was re-reading earlier context carefully rather than gathering new information.
+
+---
+
 ## Fix 24 — Prod login blocked by reCAPTCHA: automated `auth.setup.ts` cannot log in on `app.technochimes.com`
 
 **File:** `auth.setup.ts`, `.env`, `auth.json` (workflow change, not a code fix)

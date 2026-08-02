@@ -55,7 +55,9 @@ export class BannersPage {
     this.page = page;
 
     this.addNewAssetButton = page.getByRole('button', { name: 'Add New Asset' });
-    this.bannersTypeOption = page.getByText('Banners', { exact: true });
+    // The asset-type card's actual visible text is singular "Banner", not "Banners" —
+    // confirmed by the click failing to find "Banners" exactly.
+    this.bannersTypeOption = page.getByText('Banner', { exact: true });
 
     this.assetFileInput = page.locator('input[type="file"]');
     this.nextButton = page.getByRole('button', { name: 'Next' });
@@ -73,7 +75,9 @@ export class BannersPage {
     this.partnerSearchInput = page.locator('input[aria-autocomplete="list"]');
     this.publishButton = page.getByRole('button', { name: 'Publish' });
 
-    this.bannersFilterButton = page.getByRole('button', { name: 'Banners' });
+    // Same singular/plural mismatch as bannersTypeOption — the filter button's actual
+    // accessible name is "Banner", confirmed via the DOM snapshot on a failed run.
+    this.bannersFilterButton = page.getByRole('button', { name: 'Banner', exact: true });
     this.searchLibraryInput = page.getByRole('textbox', { name: 'Search library' });
   }
 
