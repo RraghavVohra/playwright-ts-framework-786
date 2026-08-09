@@ -35,8 +35,11 @@ export const CUSTOM_LINK = process.env.CUSTOM_LINK ?? 'https://www.google.com';
 export const DOCUMENT_NAME = process.env.DOCUMENT_NAME ?? 'AutoDoc';
 
 // The hashtag text typed into the hashtag field in Document Library tests
-// Must match a hashtag that exists in the autocomplete on your target environment
-export const HASHTAG_TEXT = process.env.HASHTAG_TEXT ?? 'teaser';
+// Must match a hashtag that exists in the autocomplete on your target environment.
+// 'teaser' no longer exists on digipulse (confirmed via CI failure — TC_DL_34's
+// autocomplete never showed a suggestion for it) — 'TEST 20330' (all caps, confirmed
+// via screenshot — the field and its suggestion both render it uppercase) is current.
+export const HASHTAG_TEXT = process.env.HASHTAG_TEXT ?? 'TEST 20330';
 
 // Base name prefix for Banner asset uploads in Banners tests
 // Date.now() is appended in each test to make every name unique across runs

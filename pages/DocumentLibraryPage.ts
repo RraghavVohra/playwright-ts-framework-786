@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { ENV } from '../utils/config';
+import { ENV, HASHTAG_TEXT } from '../utils/config';
 
 export class DocumentLibraryPage {
 
@@ -125,9 +125,15 @@ export class DocumentLibraryPage {
     this.hashtagField = page.locator("#tagcsv");
     // On preprod/prod the suggestion li has extra classes so we also match by exact text
     // On dev the generic ui-menu-item match is enough
+    //
+    // This used to hardcode 'teaser' directly here, independently of HASHTAG_TEXT — so
+    // when 'teaser' stopped existing as a real hashtag and HASHTAG_TEXT's default was
+    // updated to 'Test 20330', this locator kept searching for a suggestion matching the
+    // OLD text regardless, which would have just re-broken it under a different value.
+    // Building it from HASHTAG_TEXT means changing the config value alone is enough.
     this.hashtagSuggestion = ENV === 'dev'
       ? page.locator("//li[contains(@class,'ui-menu-item')]")
-      : page.locator("//li[contains(@class,'ui-menu-item') and normalize-space()='teaser']");
+      : page.locator(`//li[contains(@class,'ui-menu-item') and normalize-space()='${HASHTAG_TEXT}']`);
 
     // Search & listing
     this.searchBox                = page.locator("//input[@type='search' and @placeholder='Search']");
