@@ -68,10 +68,12 @@ export default defineConfig({
     viewport: { width: 1920, height: 1080 },
 
     launchOptions: {
-      // Adds a delay (ms) after every Playwright action — without this, actions fire
-      // faster than a human can visually follow. Purely for watching runs; doesn't affect
-      // headless CI runs in any meaningful way since nobody's watching those live.
-      slowMo: 500,
+      // Adds a delay (ms) after every Playwright action, purely so a human can visually
+      // follow a LOCAL run. Only applied outside CI — GitHub Actions sets process.env.CI
+      // automatically, and slowMo would add real wall-clock time to every action across
+      // the whole suite there (nobody's watching a CI run live), risking the workflow's
+      // 60-minute timeout for no benefit at all.
+      slowMo: process.env.CI ? 0 : 500,
 
       // Anchors the browser window to the screen's top-left corner. The 1920x1080 viewport
       // is wider than a 1366x768 screen, so the window doesn't fully fit either way — but
