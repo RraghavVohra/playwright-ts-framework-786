@@ -254,15 +254,29 @@ async confirmDelete(): Promise<void> {
 
 // Composed convenience method — selects the most-recently-created testimonial
 // (always the first row) and deletes it via checkbox -> Actions -> Delete -> OK.
+//
+// Confirming delete triggers a real page refresh. The list page's URL is
+// /framework/testimonial both BEFORE and AFTER that refresh — so waiting for it
+// AFTER clicking OK doesn't work: waitForURL() checks whatever is true the moment it's
+// called, and since the URL ALREADY matches before we even click, it can resolve
+// instantly without ever waiting for the actual reload (confirmed via two separate CI
+// failures — the search kept applying before the reload finished, wiping itself out).
+// waitForURL() is the wrong tool here regardless of ordering, since it detects a URL
+// MATCH, not a genuine navigation event — and this reload doesn't change the URL at all.
+//
+// page.waitForNavigation() is deprecated, but it's kept here deliberately: unlike
+// waitForURL(), it waits for an actual navigation/reload lifecycle event, independent of
+// whether the URL changes — which is exactly what a same-URL reload needs. Started
+// BEFORE the click (via Promise.all) so there's no gap where the reload could start and
+// finish before we begin watching for it.
 async deleteFirstTestimonial(): Promise<void> {
   await this.selectFirstTestimonialCheckbox();
   await this.openActionsMenu();
   await this.clickDeleteOption();
-  await this.confirmDelete();
-  // Confirming delete triggers a real page refresh — without waiting for it here,
-  // a caller's immediate searchTestimonial() can fill the search box before the reload
-  // finishes, which then wipes it back to the unfiltered list (confirmed via CI failure:
-  // the search never actually applied, so "No matching records found" never appeared).
+  await Promise.all([
+    this.page.waitForNavigation(),
+    this.confirmDelete(),
+  ]);
   await this.page.waitForLoadState('domcontentloaded');
 }
 

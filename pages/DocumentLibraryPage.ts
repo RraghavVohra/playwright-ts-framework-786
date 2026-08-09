@@ -297,8 +297,15 @@ export class DocumentLibraryPage {
   // HASHTAG METHODS
   // ─────────────────────────────────────────────────────────────────────
 
+  // pressSequentially() instead of fill() — the jQuery UI autocomplete that renders
+  // hashtagSuggestion listens for real keystroke events (keydown/keyup) to trigger its
+  // suggestion search. fill() sets the value directly and only fires a generic 'input'
+  // event, which this widget doesn't reliably react to — the suggestion list can simply
+  // never appear, causing selectHashtagSuggestion() to wait the full test timeout for an
+  // element that was never going to show up (confirmed via CI: TC_DL_34 timed out with
+  // no suggestion dropdown visible in the failure screenshot).
   async enterHashtag(text: string): Promise<void> {
-    await this.hashtagField.fill(text);
+    await this.hashtagField.pressSequentially(text);
   }
 
   // hashtagSuggestion is already env-aware from the constructor

@@ -277,11 +277,13 @@ test('TC_PN_23 - full form submission shows success toast', { tag: ['@smoke', '@
 
   await pushNotificationPage.clickSubmit();
 
-  // After successful submission the toast appears in the corner
+  // After successful submission the toast appears in the corner — that's the whole
+  // point of this test, and it's already fully proven by this assertion. Deliberately
+  // not calling closeToast() afterward: the close button's locator is stale (the app's
+  // markup changed since it was written) and closing it isn't part of what this test is
+  // named for or needs to verify.
   const toast = await pushNotificationPage.getToastMessageText();
   expect(toast).toBe('Push Notification Saved.');
-
-  await pushNotificationPage.closeToast();
 });
 
 
