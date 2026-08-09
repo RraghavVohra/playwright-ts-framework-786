@@ -2,6 +2,64 @@
 
 ---
 
+## Fix 34 — CI: concurrent Azure workers triggering "403 Forbidden" / timeouts on digipulse — workers vs retries vs sharding
+
+**File:** `.github/workflows/playwright.yml`, `playwright.config.ts`
+
+**Problem:** Running the full suite (94 tests) via GitHub Actions on Azure's cloud browsers (`--workers=4`) produced 16 failures. Batching them by symptom: 10 showed a literal "403 Forbidden" page (unrelated features — Social Auto-post, Brochure, Testimonials — ruling out a per-feature bug), and 2 more (`TC_DL_40`, `TC_DL_41`, the last two tests in `document-library.spec.ts`) timed out on a locator that had never been touched, in a file already documented (Fixes.md #16–18) as budget-tight even under normal serial conditions. None of these reproduced locally, where `workers: 1` is already the default.
+
+**Root cause theory:** Azure's cloud browsers connect to digipulse from Azure's datacenter IP ranges, not a local/known IP. With `--workers=4`, up to 4 tests can hit the server *simultaneously*. If digipulse (or something in front of it) has any rate-limiting or burst-detection, that concurrency — absent entirely in the local serial (`workers: 1`) setup — is exactly what would trigger it. The two `TC_DL_40`/`TC_DL_41` timeouts fit the same theory: a test already running on a thin time budget tips over first when the server is generally slower under concurrent load, producing a timeout instead of an outright 403, but from the same underlying cause.
+
+**Options considered (industry-standard patterns, not this-project-specific guesses):**
+1. **Retries** (`retries: N` in Playwright config) — re-runs a failed test automatically. Only fixes *genuinely transient* failures (a single momentary blip). Does **not** reliably fix a *sustained* concurrency problem: if 4 workers are hammering the server for the whole run, a retry moments later can easily land in the same overloaded window and fail again. Cheap insurance, not a real fix for this specific cause.
+2. **Lower `--workers`** — directly reduces how many simultaneous requests hit the target, attacking the actual mechanism. Slower, but reliable — this is what makes local runs never see the problem.
+3. **Sharding** (splitting the suite across multiple parallel CI *jobs*/machines) — a common industry pattern for large suites, but it solves *wall-clock time* by using more machines, not *target-server concurrency*: shards run simultaneously by default, so 4 shards × 1 worker each can still produce the same 4-simultaneous-requests load on the target as 4 workers in one job. Sharding and concurrency-safety are two different problems that look similar; capping shard parallelism to avoid the second problem cancels out the speed benefit sharding was for.
+4. **The real production-grade fix** (same category as the reCAPTCHA problem, Fix 24) — get digipulse's rate limit raised or the CI IP range allowlisted, removing the constraint at the source instead of trading speed for reliability on the test side.
+
+**Fix applied:**
+- `playwright.config.ts`: `retries: process.env.CI ? 1 : 0` — cheap insurance against genuine one-off blips, explicitly not relied on as the fix for the concurrency issue.
+- `.github/workflows/playwright.yml`: added a `workers` dropdown input (`1`/`2`/`4`/`8`, default `1`), same `workflow_dispatch` pattern already used for `environment` — `--workers=4` was hardcoded before. Defaulting to `1` matches local behavior (reliable); raising it is now an explicit, informed choice per run instead of a fixed tradeoff baked into the workflow.
+
+**Interview angle:** The valuable distinction here is that "make CI faster" (sharding, more workers) and "make CI reliable against a rate-limited target" (fewer workers, retries, or fixing the target) are *different axes*, and a technique that helps one can passively look like it helps the other without actually doing so (sharding is the clearest example — it's easy to assume more parallelism always trades directly against reliability, but sharded jobs still run concurrently against the same target by default). The other reusable lesson: a batch of failures with the same symptom but touching *unrelated* features is a strong signal to look for infrastructure/environment causes before assuming N separate code bugs — six different page objects don't independently develop the same bug at the same time.
+
+---
+
+## Fix 33 — TestimonialsPage: delete-then-search race — page reload after delete wipes the search box
+
+**File:** `pages/TestimonialsPage.ts`
+
+**Problem:** `TC_TST_18` (the delete-flow test) failed: after deleting a testimonial and searching for its name, "No matching records found" never appeared. The CI screenshot showed the full, unfiltered testimonials list — the search had never actually applied. `deleteFirstTestimonial()` clicked the delete confirmation ("OK") and returned immediately. But confirming a delete triggers a real page reload (this had already been described when the delete flow was first built: "It will get deleted, page refreshes, then we will search"). The very next call, `searchTestimonial()`, could fill the search box *before* that reload finished, and the reload then reset the page back to its default unfiltered state, silently discarding the search.
+
+**Fix:** Added `await this.page.waitForLoadState('domcontentloaded')` at the end of `deleteFirstTestimonial()`, after `confirmDelete()`.
+
+**Interview angle:** The fix was already implied by information given at the very start of building this flow ("page refreshes, then we search") — the bug was never encoding that sequencing into the code, not a missing piece of information. Also a good example of a failure that looks like "the assertion is wrong" (searched for something and got the full list instead of empty) but is actually "the precondition never happened" (the search itself silently didn't apply).
+
+---
+
+## Fix 32 — BrochurePage: dual-platform test finds two Asset Library cards for the same title
+
+**File:** `tests/e2e/brochure.spec.ts`
+
+**Problem:** `TC_BRO_01` (the only Brochure test publishing to both Mobile App **and** Microsite) failed with a strict-mode violation: `getByTitle(brochureName)` resolved to 2 elements. Since this test deliberately targets both distribution platforms, the Asset Library lists the same content as two separate cards (one per platform), both carrying the identical title — consistent with everything else already learned about the dual-platform path (two thumbnail rounds, two hidden file inputs).
+
+**Fix:** Scoped just that one assertion to `.first()` — `getAssetByTitle(brochureName).first()`. Left every other Brochure test (all single-platform) untouched, since those should only ever produce one card.
+
+**Interview angle:** The fix belongs on the *specific test* that causes the duplication, not the shared `getAssetByTitle()` helper — changing the helper to always use `.first()` would have silently hidden a real strict-mode violation on every other (correctly single-card) test if one of them ever broke and started duplicating unexpectedly.
+
+---
+
+## Fix 31 — Social Auto-post: tooltip regex too strict — some sizes carry a platform annotation
+
+**File:** `tests/e2e/social-autopost.spec.ts`
+
+**Problem:** `TC_SAP_08` failed: `expect(size).toMatch(/^\d+ x \d+$/)` against `"1080 x 940 (FB & LinkedIn)"`. The regex assumed every line in the "Image Allowed Sizes" tooltip is bare `"NNN x NNN"` — real tooltip data includes a platform annotation on at least one entry, which is legitimate content, not a glitch.
+
+**Fix:** Relaxed the pattern to `/^\d+ x \d+(\s*\(.+\))?$/` — still requires the core dimensions, but now allows an optional trailing `(...)` annotation.
+
+**Interview angle:** A regex written against one or two examples can quietly encode an assumption ("every entry looks like this") that was never actually guaranteed — the fix is to identify what invariant *actually* matters (here: valid dimensions are present) versus what was just coincidentally true of the samples seen while writing the test.
+
+---
+
 ## Fix 30 — Brochure: dual-platform save is genuinely slow — default 15s assertion timeout isn't enough
 
 **File:** `tests/e2e/brochure.spec.ts`

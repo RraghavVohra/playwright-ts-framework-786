@@ -16,6 +16,21 @@ on:
            - prod
            - preprod
            - dev
+       workers:
+         # How many tests run truly simultaneously against Azure's cloud browsers.
+         # Higher = faster, but more concurrent load on the target server. Default 1
+         # matches local behavior and is the reliable choice — raise it only if you're
+         # specifically trading reliability for speed. See Fixes.md for why (concurrent
+         # workers were triggering 403 Forbidden / timeouts on digipulse under load).
+         description: 'Parallel workers (1 = reliable/slow, higher = faster/riskier)'
+         required: true
+         default: '1'
+         type: choice
+         options:
+           - '1'
+           - '2'
+           - '4'
+           - '8'
 
 # WHAT to run
 jobs:
@@ -53,7 +68,7 @@ jobs:
     # Step 5 — Run Playwright tests on Azure cloud
     # PLAYWRIGHT_SERVICE_URL tells Playwright to use Azure cloud browsers
     # --config = use Azure service config instead of local config
-    # --workers=4 = run 4 tests in parallel on Azure cloud
+    # --workers = how many tests run in parallel, chosen from the dropdown above
     # vars.PLAYWRIGHT_SERVICE_URL = URL stored in GitHub Variables
     - name: Run Playwright tests
       env:
@@ -61,7 +76,7 @@ jobs:
          ENV: ${{ inputs.environment }}
          USER_EMAIL: ${{ secrets.USER_EMAIL }}
          USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
-      run: npx playwright test --config=playwright.service.config.ts --workers=4
+      run: npx playwright test --config=playwright.service.config.ts --workers=${{ inputs.workers }}
     # Step 6 — Upload test report as artifact to GitHub
     # The if statement means-> upload report even if tests failed
     # retention-days: 30 = report stays available for 30 days

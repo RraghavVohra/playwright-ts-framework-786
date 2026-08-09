@@ -74,7 +74,11 @@ test('TC_BRO_01 - creates a Brochure for Mobile App and Microsite and confirms i
   await brochurePage.filterByBrochure();
   await brochurePage.searchLibrary(brochureName);
 
-  await expect(brochurePage.getAssetByTitle(brochureName)).toBeVisible();
+  // This test publishes to BOTH Mobile App and Microsite, which shows up in the Asset
+  // Library as two separate cards sharing the same title (one per platform) — .first()
+  // avoids the strict-mode violation, since we only need to confirm it was created, not
+  // that there's exactly one card. Single-platform tests below don't need this.
+  await expect(brochurePage.getAssetByTitle(brochureName).first()).toBeVisible();
 });
 
 // TC_BRO_02 — Mobile App only. Mobile is checked by default and Microsite is left

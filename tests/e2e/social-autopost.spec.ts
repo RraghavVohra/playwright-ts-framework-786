@@ -359,8 +359,10 @@ test.describe('Social Auto Post', { tag: ['@regression'] }, () => {
     console.log('Image Allowed Sizes from tooltip:', sizes);
 
     expect(sizes.length).toBeGreaterThan(0);
+    // Some entries carry a platform annotation, e.g. "1080 x 940 (FB & LinkedIn)" —
+    // the trailing "(...)" is optional, not every size is bare "NNN x NNN".
     for (const size of sizes) {
-      expect(size).toMatch(/^\d+ x \d+$/);
+      expect(size).toMatch(/^\d+ x \d+(\s*\(.+\))?$/);
     }
   });
 

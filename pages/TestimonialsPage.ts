@@ -259,6 +259,11 @@ async deleteFirstTestimonial(): Promise<void> {
   await this.openActionsMenu();
   await this.clickDeleteOption();
   await this.confirmDelete();
+  // Confirming delete triggers a real page refresh — without waiting for it here,
+  // a caller's immediate searchTestimonial() can fill the search box before the reload
+  // finishes, which then wipes it back to the unfiltered list (confirmed via CI failure:
+  // the search never actually applied, so "No matching records found" never appeared).
+  await this.page.waitForLoadState('domcontentloaded');
 }
 
 async searchTestimonial(name: string): Promise<void> {

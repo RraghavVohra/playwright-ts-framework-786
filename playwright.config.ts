@@ -33,6 +33,14 @@ export default defineConfig({
   // Keeps things stable and predictable while learning
   workers: 1,
 
+  // Retries only on CI (GitHub Actions sets process.env.CI automatically) — cheap
+  // insurance against a genuine one-off network blip. NOT a fix for a sustained
+  // concurrency-driven issue (like Azure's parallel workers overloading a rate-limited
+  // target): a retry only helps if whatever caused the failure has actually gone away by
+  // the time it re-runs. See Fixes.md for the full "workers vs retries vs sharding"
+  // investigation this came out of.
+  retries: process.env.CI ? 1 : 0,
+
   // line = shows real-time test progress in the terminal
   // allure-playwright = generates allure-results/ folder for the Allure report
   // After a run: npx allure generate allure-results --clean && npx allure open
