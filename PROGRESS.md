@@ -1432,3 +1432,112 @@ Switching to `ENV=prod` to test on `app.technochimes.com`, automated login faile
 ---
 
 *Last updated: Session 14 — 2026-07-18*
+
+---
+
+## Session 15 — Three New Asset Types (Banners, Social Post, Brochure), CI on Azure at Scale, and a Concurrency Investigation
+
+### What Was Built
+
+#### 1. Three new page objects, all sharing the same underlying "New Asset" wizard
+
+The Asset Library has a shared 4-step wizard (`Select Asset Type → Upload/Create/Import → Asset(s) Details → Publish Asset`) used by four asset types. Following the one-page-object-per-feature convention already established (not a shared `AssetLibraryPage` — deliberately avoided as premature abstraction until real duplication across features was actually seen), built three separate page objects:
+
+- **`pages/BannersPage.ts`** — 4 image formats (png/jpg/jpeg/webp) + 2 characterization tests for currently-unvalidated non-image formats (pdf/csv). 6 test cases total (`TC_BNR_01–06`).
+- **`pages/SocialPostAssetPage.ts`** — explicitly *not* named `SocialPostPage` to avoid confusion with the pre-existing, unrelated `SocialAutoPostPage.ts`. 2 test cases (`TC_SPA_01–02`): one for WhatsApp, one for Social/Facebook/Twitter/LinkedIn together, the second also carrying a deliberate apostrophe in its Name field.
+- **`pages/BrochurePage.ts`** — the most complex of the three: PDF upload, a native `<select>` Content Type dropdown, and a genuinely branching flow where selecting **both** Mobile App and Microsite distribution triggers a **second thumbnail/crop round** that reuses the already-uploaded file instead of attaching a new one (`Crop & Next` vs `Crop & Submit` are different buttons, not the same button relabeled). 8 test cases (`TC_BRO_01–08`): the dual-platform happy path, Mobile-only, Microsite-only, special characters in both filename and content, multiple categories/hashtags, and all 3 Content Type variations including none at all.
+
+**Shared config additions** (`utils/config.ts`): `BANNER_NAME`, `SOCIAL_POST_ASSET_NAME`, `BROCHURE_NAME`, `BROCHURE_CATEGORY`/`BROCHURE_HASHTAG` (+ a second pair for the multi-select test) — same environment-specific-data pattern as `PARTNER_CATEGORY_NAME`. Social Post's category/hashtag values ("Term Plan"/"BAA" from an old codegen recording) turned out to no longer exist on digipulse — reused Brochure's already-confirmed "Savings"/"Rag09" instead of guessing new ones.
+
+---
+
+#### 2. Locator-discovery workflow, refined mid-session
+
+Every one of these three features started from a **codegen recording** the user provided, not blind construction. Two hard lessons about trusting raw codegen output surfaced repeatedly and are captured as Fixes 25–29:
+
+- Raw recordings capture *what happened to work once*, not what's structurally correct — `page.locator('body').setInputFiles(...)` (a codegen artifact from a native file-picker interaction it couldn't resolve properly) and multiple redundant clicks on a crop area were both signs of this, not things to replicate literally.
+- Fields that *look* identical across features (Categories/Hashtags select-then-close, the partner multi-select, the thumbnail/crop widget) turned out to be the same underlying components reused across Banners/Social Post/Brochure — recognized and reused the same fix once, rather than re-solving it three times (see Fix 26).
+- Singular/plural text mismatches were a recurring, easy-to-miss category of bug: the Banners asset-type card is "Banner" not "Banners", and its Asset Library filter button is *also* "Banner" not "Banners" — both discovered only by reading the actual DOM snapshot Playwright captures on failure, not by assumption.
+
+---
+
+#### 3. `playwright.config.ts` — screen-fit and watchability changes
+
+- `viewport: { width: 1920, height: 1080 }` — carried over from Session 14's Testimonials fix, still needed here since these new flows also rely on clicking full top-nav items.
+- `launchOptions.args: ['--window-position=0,0']` — the configured viewport is wider than the user's actual screen (1366×768); anchoring the window's origin to the top-left means the natural top-left content is what's visible (rather than an arbitrary shifted crop), even though the window still can't fully fit either way.
+- `launchOptions.slowMo: process.env.CI ? 0 : 500` — added so a human could visually follow local runs, explicitly gated off in CI (GitHub Actions sets `process.env.CI` automatically) since it would otherwise add real wall-clock time across the whole suite for zero benefit.
+- A `deviceScaleFactor: 0.7` attempt (to shrink the rendered window to fit the screen while keeping the wide logical viewport) was tried, coincided with a login flake, and was reverted on suspicion rather than confirmed cause — never revisited as of this session.
+
+---
+
+#### 4. reCAPTCHA on prod got *worse*, not better — pivoted to `dev`
+
+Session 14's Fix 24 workaround (manually log in via `codegen --save-storage=auth.json`, since a human solving the CAPTCHA should sidestep automation detection) **stopped working this session** — the identical "invalid recaptcha" error appeared even with a human doing the clicking inside the codegen-launched browser. Root cause: reCAPTCHA can fingerprint the *browser itself* as automation-controlled (`navigator.webdriver`, missing plugins, other CDP tells), independent of who's driving it.
+
+Rather than chase a fix with no clear next step, added `dev` (`https://app.spdevmfp.com`) as a fourth working environment with its own credentials in `.env` — dev has no reCAPTCHA, so automated login works there exactly like digipulse. Manually exporting cookies from a real (non-Playwright) browser was discussed as a "least resort" option and partially scoped (the exact `auth.json` schema was documented) but not completed — parked, not abandoned.
+
+---
+
+#### 5. Running the full suite via GitHub Actions + Azure Playwright Testing, at scale, for the first time
+
+First full run: 94 tests, 16 failed. Batched by symptom rather than treated as 16 separate bugs:
+
+- **10 failures** showed a literal "403 Forbidden" page, spread across completely unrelated features (Social Auto-post, Brochure, Testimonials) — the lack of any shared code path between them was the actual diagnostic clue.
+- **2 more** (`TC_DL_40`, `TC_DL_41`, the last two tests in `document-library.spec.ts`) timed out on a locator that had never been touched, in a file already documented (Fixes #16–18) as budget-tight even under normal serial conditions.
+
+**Root cause theory:** Azure's cloud browsers connect from datacenter IPs, and `--workers=4` meant up to 4 tests could hit digipulse simultaneously — concurrency this suite never experiences locally (`workers: 1`). Considered and rejected as fixes: retries alone (only fix genuinely transient blips, not a *sustained* concurrency condition — a retry can land in the same overloaded window and fail again) and sharding (splits work across parallel CI *jobs* for speed, but by default those jobs run simultaneously too — it solves wall-clock time, not concurrent load on the target, a distinction easy to conflate). Full reasoning in Fixes.md Fix 34.
+
+**Fix applied:** `retries: process.env.CI ? 1 : 0` in `playwright.config.ts` (cheap insurance for genuine blips, explicitly not relied on for the real issue), and `.github/workflows/playwright.yml`'s hardcoded `--workers=4` replaced with a `workers` dropdown input (same `workflow_dispatch` pattern already used for `environment`), defaulted to `1`.
+
+**Result, confirmed by re-running:** 16 failed → 6 failed + 3 flaky (flaky = failed once, passed on retry — recovered, not masked). Hypothesis confirmed with real before/after numbers. Runtime cost of the reliability tradeoff: 48.6 minutes total, an honest number rather than an abstract "it'll be slower."
+
+**Next step identified, not yet taken:** this class of problem can only be *worked around* on the test side (fewer workers = slower but safe) — it can only be *solved* server-side. Queued as a conversation with the team that owns digipulse's infrastructure: whether there's a WAF/rate-limiter and what its threshold is, whether Azure Playwright Testing's egress IP range can be allowlisted (Azure's service supports a fixed egress IP via VNET injection for exactly this), and whether a known-test-traffic exemption is possible.
+
+---
+
+#### 6. Failures triaged one at a time — real bugs vs. environment noise vs. genuine app regressions
+
+Of the 16 original failures, once the 403/concurrency cluster (12 tests) was explained by one root cause, the remaining ones split into three distinct categories:
+
+**Real test-code bugs, fixed (Fixes 32, 35, 36, 37):**
+- `TC_BRO_01` — publishing to both platforms creates two Asset Library cards sharing one title; `getByTitle().first()` scoped to just that dual-platform test, not the shared helper.
+- `TC_PN_23` — a stale close-button locator from the project's first-ever session; turned out the test never needed to click it at all (the assertion it's named for already passed by that point) — deleted the step instead of chasing new markup.
+- `TC_TST_18` — the delete-then-search race from Fix 33 needed a *second* fix: `waitForLoadState`/`waitForURL` don't help when the reload doesn't change the URL (the list page's URL is identical before and after). Fixed with `Promise.all([page.waitForNavigation(), confirmDelete()])` — deliberately keeping a deprecated API because its replacement doesn't cover this case.
+- `TC_DL_34` — three stacked causes behind one symptom: a hashtag ("teaser") that no longer exists, then a case-sensitivity mismatch ("Test 20330" vs the real "TEST 20330"), then an underlying architectural bug — the suggestion locator had its expected text hardcoded independently of the `HASHTAG_TEXT` config value it was supposed to track, so fixing the config alone would never have been enough.
+- `TC_SAP_08` — a tooltip-content regex assumed every "allowed size" entry was bare `"NNN x NNN"`; real data includes a platform annotation on some entries (`"1080 x 940 (FB & LinkedIn)"`) — relaxed the pattern rather than treating real content as a glitch.
+
+**A genuine app regression, not a test bug (flagged for the dev team, not "fixed"):**
+- `TC_DL_40`/`TC_DL_41` — the "Partner Category" button (`#btn_ptr_category`) the test was built against no longer exists. Inspecting the current markup showed a completely different widget now (a native `<select multiple id="categ_list">`, a "bootstrap-select" component) — confirmed by the user this doesn't match production behavior, making it worth reporting rather than quietly patching the test to match. Decision: `test.skip()` both with a comment explaining why, pending the dev team's response, rather than either silently updating to the new (possibly-unintended) behavior or leaving them as noisy permanent failures.
+
+---
+
+### Concepts Demonstrated (New This Session)
+
+| Concept | Where |
+|---|---|
+| One page object per feature, resisting premature shared-abstraction | `BannersPage`/`SocialPostAssetPage`/`BrochurePage`, not a shared `AssetLibraryPage` |
+| Recognizing a shared underlying component across features and reusing its fix | Partner multi-select force-click (Fix 26), reused 3×; crop-drag pattern, reused 3× |
+| Branching automation flow (conditional second round based on earlier selections) | Brochure's Mobile+Microsite dual thumbnail/crop rounds |
+| CAPTCHA/browser-fingerprinting as an environment problem, not a code problem | reCAPTCHA blocking even manual codegen logins on prod |
+| Diagnosing infrastructure issues by symptom clustering across unrelated code | 403/timeout batch spanning 6 unrelated features → one root cause |
+| Distinguishing "faster" from "more reliable" as different, non-substitutable axes | Workers vs retries vs sharding investigation (Fix 34) |
+| `Promise.all()` to avoid a navigation race, and when a deprecated API is still the right tool | `waitForNavigation()` for a same-URL reload (Fix 36) |
+| Multi-layered bugs behind one symptom, each needing independent verification | TC_DL_34 (stale data → case mismatch → architectural drift) |
+| Distinguishing a real app regression from a test bug, and reporting instead of silently patching | TC_DL_40/41's removed Partner Category button |
+| `workflow_dispatch` inputs as an alternative to maintaining multiple near-duplicate CI config files | `workers` dropdown in `playwright.yml` |
+
+---
+
+### Current State
+
+- **Page Objects:** 7 (`PushNotificationPage`, `DocumentLibraryPage`, `SocialAutoPostPage`, `TestimonialsPage`, `BannersPage`, `SocialPostAssetPage`, `BrochurePage`)
+- **Test files:** 7 (adds `banners.spec.ts`, `social-post-asset.spec.ts`, `brochure.spec.ts`)
+- **Test cases:** ~94 total across the full suite (14 push notification + 22 document library + 11 social auto-post + 18 testimonials + 6 banners + 2 social post + 8 brochure, plus a couple of TBD/skip additions)
+- **Environments supported:** 4 (dev, preprod, prod, digipulse) — dev newly added this session specifically to route around prod's reCAPTCHA
+- **CI:** GitHub Actions + Azure Playwright Testing, `workers` and `environment` both configurable per run, `retries: 1` on CI only
+- **Fixes this session:** 25–37 (13 fixes) — see `Fixes.md` for full detail on each
+- **Pending:** TC_DL_40/41 skipped pending dev team response on the Partner Category UI regression; conversation with infrastructure owner about digipulse rate-limiting not yet had; `deviceScaleFactor` screen-fit approach never conclusively resolved; manual-cookie-export `auth.json` workaround partially scoped but not completed
+
+---
+
+*Last updated: Session 15 — 2026-08-09*

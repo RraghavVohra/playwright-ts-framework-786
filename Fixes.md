@@ -2,6 +2,45 @@
 
 ---
 
+## Fix 37 — TC_DL_34: stale hashtag value, then a case-sensitivity mismatch, then a locator hardcoded independently of its own config value
+
+**File:** `utils/config.ts`, `.env`, `pages/DocumentLibraryPage.ts`
+
+**Problem (three layers, found one at a time):**
+1. `HASHTAG_TEXT` defaulted to `'teaser'` — a hashtag that no longer exists on digipulse. The autocomplete correctly found zero matches, so its suggestion `<li>` never rendered, and `selectHashtagSuggestion()` waited the full test timeout for an element that was never coming (confirmed by manually checking — no such hashtag exists anymore).
+2. Updated `HASHTAG_TEXT` to `'Test 20330'` (the real replacement) — still timed out. The failure screenshot showed why: the field and its suggestion both render the value as **`TEST 20330`** (all caps). XPath's `=` comparison is case-sensitive, so `normalize-space()='Test 20330'` never matches text that's actually `'TEST 20330'`.
+3. Underneath both: `hashtagSuggestion`'s locator had the hashtag text **hardcoded directly in the XPath string**, completely independent of the `HASHTAG_TEXT` constant the test actually types. Fixing the config value alone would never have been enough — the locator needed to be rebuilt from `HASHTAG_TEXT` so the two can't drift apart again.
+
+**Fix:** `HASHTAG_TEXT` default corrected to `'TEST 20330'` (matching the confirmed casing) in both `.env` and `config.ts`. `DocumentLibraryPage.ts` now imports `HASHTAG_TEXT` and builds the locator as `` `//li[...and normalize-space()='${HASHTAG_TEXT}']` `` instead of a hardcoded string.
+
+**Interview angle:** Three genuinely different root causes produced the *identical* symptom (infinite wait for a suggestion that never appears) — stale test data, a case mismatch, and a config/locator that could silently drift apart. The lesson isn't "check the obvious thing first," it's that the same error message can hide multiple independent problems layered on top of each other, and each fix has to be verified against a fresh run rather than assumed to be the last one.
+
+---
+
+## Fix 36 — TC_TST_18 (again): `waitForURL`/`waitForLoadState` don't help when the reload doesn't change the URL
+
+**File:** `pages/TestimonialsPage.ts`
+
+**Problem:** Fix 33's `waitForLoadState('domcontentloaded')` after confirming a delete didn't actually resolve the race — TC_TST_18 failed the same way again in a later CI run. The deeper issue: the testimonials list page's URL (`/framework/testimonial`) is identical *before and after* the delete-triggered reload. Both `waitForLoadState()` and a subsequently-tried `waitForURL(/framework\/testimonial/)` just check whatever is true **at the moment they're called** — since the URL already matches before the reload even starts, they can resolve instantly against the *old, still-loaded* page instead of ever waiting for the real one.
+
+**Fix:** Replaced both with `Promise.all([this.page.waitForNavigation(), this.confirmDelete()])` — start listening for an actual navigation lifecycle *event* before triggering the click that causes it, so there's no window where the reload can start and finish before the wait begins. `waitForNavigation()` is deprecated in favor of `waitForURL()`, but deliberately kept here: `waitForURL()` detects a URL *match*, not a navigation *event*, which doesn't work when the URL doesn't change.
+
+**Interview angle:** "Wait for the page to be ready" and "wait for a URL to match a pattern" are not the same guarantee, and the difference only matters when a reload doesn't change the URL — a case easy to overlook since it's the opposite of the usual "wait after clicking a link" scenario these APIs are normally reached for. Also a concrete example of a deprecated API being the *correct* choice for a specific edge case its replacement doesn't cover — deprecated doesn't always mean strictly worse for every use.
+
+---
+
+## Fix 35 — TC_PN_23: stale toast close-button locator — the test never needed to click it at all
+
+**File:** `pages/PushNotificationPage.ts`, `tests/e2e/push-notification.spec.ts`
+
+**Problem:** `closeToast()`'s locator (`//span[@onclick='close_success_mssg()']`) — written in this project's very first session — timed out waiting for an element that no longer exists; the app's success-toast markup has since changed. But re-reading what TC_PN_23 actually asserts (`expect(toast).toBe('Push Notification Saved.')`) showed the close click happens *after* that assertion already passed — it was leftover cleanup, not something the test ("full form submission shows success toast") was ever named for or needed to verify.
+
+**Fix:** Removed the `closeToast()` call from TC_PN_23 entirely, rather than chasing down the new close-button markup to fix a locator the test didn't actually depend on.
+
+**Interview angle:** Before fixing a broken locator, check whether the step using it is actually load-bearing for what the test claims to verify — sometimes the right fix is deleting the step, not repairing it. Matches the same instinct as Fix 9 (`scrollToTop()` removed rather than fixed, for the same reason: it wasn't needed for the assertion that mattered).
+
+---
+
 ## Fix 34 — CI: concurrent Azure workers triggering "403 Forbidden" / timeouts on digipulse — workers vs retries vs sharding
 
 **File:** `.github/workflows/playwright.yml`, `playwright.config.ts`

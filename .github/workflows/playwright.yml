@@ -24,7 +24,7 @@ on:
          # workers were triggering 403 Forbidden / timeouts on digipulse under load).
          description: 'Parallel workers (1 = reliable/slow, higher = faster/riskier)'
          required: true
-         default: '1'
+         default: '4'
          type: choice
          options:
            - '1'
