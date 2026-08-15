@@ -58,10 +58,13 @@ test('TC_VID_01 - creates a Video asset for Mobile App only with all toggles and
   await expect(videoAssetPage.getAssetByTitle(videoName)).toBeVisible();
 });
 
-// TC_VID_02 — Microsite only, all three publish-page toggles on. Explicitly unchecks the
-// default Mobile distribution first, then checks Microsite — single-round thumbnail/crop
-// path, same as Brochure's TC_BRO_03.
-test('TC_VID_02 - creates a Video asset for Microsite only with all toggles and confirms it appears in the Asset Library', async ({ videoAssetPage, page }) => {
+// TC_VID_02 — Microsite only, Co-Branding + Push Notifications toggles on. Explicitly
+// unchecks the default Mobile distribution first, then checks Microsite — single-round
+// thumbnail/crop path, same as Brochure's TC_BRO_03.
+// Email Notifications is deliberately NOT checked here — confirmed (via a real failure:
+// the toggle rendered as <input disabled>) that it's only enabled when Mobile App is
+// selected, not for Microsite-only. Genuine app behavior, not a locator bug.
+test('TC_VID_02 - creates a Video asset for Microsite only with Co-Branding and Push Notifications toggles and confirms it appears in the Asset Library', async ({ videoAssetPage, page }) => {
   const videoName = `${VIDEO_ASSET_NAME}_${Date.now()}`;
 
   await videoAssetPage.navigateToCreateVideo();
@@ -93,7 +96,7 @@ test('TC_VID_02 - creates a Video asset for Microsite only with all toggles and 
   await videoAssetPage.checkCoBrandingToggle();
   await videoAssetPage.selectStartFrameCobrand();
   await videoAssetPage.checkPushNotificationsToggle();
-  await videoAssetPage.checkEmailNotificationsToggle();
+  // Deliberately no checkEmailNotificationsToggle() — disabled for Microsite-only.
   await videoAssetPage.clickPublish();
 
   await expect(page).toHaveURL(/home\/AssetLibrary/);
