@@ -6,6 +6,7 @@ import { TestimonialsPage } from '../pages/TestimonialsPage';
 import { BannersPage } from '../pages/BannersPage';
 import { SocialPostAssetPage } from '../pages/SocialPostAssetPage';
 import { BrochurePage } from '../pages/BrochurePage';
+import { VideoAssetPage } from '../pages/VideoAssetPage';
 // ─────────────────────────────────────────────────────────────────────
 // WHY FIXTURES?
 //
@@ -33,6 +34,7 @@ type MyFixtures = {
   bannersPage: BannersPage;
   socialPostAssetPage: SocialPostAssetPage;
   brochurePage: BrochurePage;
+  videoAssetPage: VideoAssetPage;
 };
 
 // base.extend() takes the standard Playwright 'test' and adds our custom fixtures to it
@@ -82,6 +84,11 @@ export const test = base.extend<MyFixtures>({
   brochurePage: async ({ page }, use) => {
     const brochurePage = new BrochurePage(page);
     await use(brochurePage);
+  },
+
+  videoAssetPage: async ({ page }, use) => {
+    const videoAssetPage = new VideoAssetPage(page);
+    await use(videoAssetPage);
   }
 
 });

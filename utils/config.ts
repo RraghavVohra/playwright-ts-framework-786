@@ -65,6 +65,15 @@ export const BROCHURE_HASHTAG  = process.env.BROCHURE_HASHTAG  ?? 'Rag09';
 export const BROCHURE_CATEGORY_2 = process.env.BROCHURE_CATEGORY_2 ?? 'Home Insurance';
 export const BROCHURE_HASHTAG_2  = process.env.BROCHURE_HASHTAG_2  ?? 'Astounding';
 
+// Base name prefix for Video asset uploads (Asset Library "Video" type)
+// Date.now() is appended in each test to make every name unique across runs
+export const VIDEO_ASSET_NAME = process.env.VIDEO_ASSET_NAME ?? 'AutoVideo';
+
+// Hashtag used when creating a Video asset — reuses BROCHURE_CATEGORY ('Savings') for the
+// category since it's already confirmed to exist on digipulse; this hashtag ('Romania') was
+// confirmed separately, selected directly off the live autocomplete during the codegen recording.
+export const VIDEO_HASHTAG = process.env.VIDEO_HASHTAG ?? 'Romania';
+
 // Social Auto-post config
 // social.partner.search — term typed into the category search box to filter results
 // social.partner.name   — exact visible label text of the category to select
