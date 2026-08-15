@@ -52,7 +52,10 @@ export class SocialPostAssetPage {
   private socialPostFilterButton: Locator;
   private searchLibraryInput: Locator;
 
+  // TC_SPA_02 uses IMAGE_FILE_2 instead of IMAGE_FILE so the two tests don't create
+  // identical-looking Asset Library entries — purely visual variety, no functional purpose.
   static readonly IMAGE_FILE = 'test-data/Amsterdam.png';
+  static readonly IMAGE_FILE_2 = 'test-data/Sweden.png';
 
   constructor(page: Page) {
     this.page = page;

@@ -80,7 +80,18 @@ export class VideoAssetPage {
   private searchLibraryInput: Locator;
 
   static readonly VIDEO_FILE = 'test-data/video.mp4';
+  // Confirmed via the "Add Video" screen's own text ("Upload videos in mp4, MOV, and
+  // YouTube video link format") that .mov is a second supported format — this file's own
+  // name happens to already contain an apostrophe, incidentally exercising that too.
+  static readonly VIDEO_FILE_MOV = "test-data/MOVS_Video's 1280X720.mov";
+  // Rotated across the 11 tests in video-asset.spec.ts so created assets don't all show the
+  // identical thumbnail in the Asset Library — purely visual variety, no functional purpose.
   static readonly THUMBNAIL_IMAGE = 'test-data/Amsterdam.png';
+  static readonly THUMBNAIL_IMAGE_2 = 'test-data/Sweden.png';
+  static readonly THUMBNAIL_IMAGE_3 = 'test-data/newzealnd.png';
+  static readonly THUMBNAIL_IMAGE_4 = 'test-data/empirestate.png';
+  static readonly THUMBNAIL_IMAGE_5 = 'test-data/indiagate.png';
+  static readonly THUMBNAIL_IMAGE_6 = 'test-data/goldengate.jpg';
 
   constructor(page: Page) {
     this.page = page;

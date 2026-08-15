@@ -103,7 +103,7 @@ test('TC_BRO_02 - creates a Brochure for Mobile App only and confirms it appears
 
   await expect(page).toHaveURL(/home\/new-asset\/base-asset-details/);
   // Mobile is already checked by default — no extra click needed here.
-  await brochurePage.uploadThumbnail(BrochurePage.THUMBNAIL_IMAGE);
+  await brochurePage.uploadThumbnail(BrochurePage.THUMBNAIL_IMAGE_2);
   await brochurePage.dragCropSelection();
   await brochurePage.clickCropAndSubmit();
   await brochurePage.clickSaveAndProceed();
@@ -146,7 +146,7 @@ test('TC_BRO_03 - creates a Brochure for Microsite only and confirms it appears 
   await expect(page).toHaveURL(/home\/new-asset\/base-asset-details/);
   await brochurePage.deselectMobileDistribution();
   await brochurePage.selectMicrositeDistribution();
-  await brochurePage.uploadThumbnail(BrochurePage.THUMBNAIL_IMAGE);
+  await brochurePage.uploadThumbnail(BrochurePage.THUMBNAIL_IMAGE_3);
   await brochurePage.dragCropSelection();
   await brochurePage.clickCropAndSubmit();
   await brochurePage.clickSaveAndProceed();
@@ -187,7 +187,7 @@ test('TC_BRO_04 - creates a Brochure with special characters in the name and con
   await brochurePage.clickSaveAndProceed();
 
   await expect(page).toHaveURL(/home\/new-asset\/base-asset-details/);
-  await brochurePage.uploadThumbnail(BrochurePage.THUMBNAIL_IMAGE);
+  await brochurePage.uploadThumbnail(BrochurePage.THUMBNAIL_IMAGE_4);
   await brochurePage.dragCropSelection();
   await brochurePage.clickCropAndSubmit();
   await brochurePage.clickSaveAndProceed();
@@ -227,7 +227,7 @@ test('TC_BRO_05 - creates a Brochure with multiple categories and hashtags and c
   await brochurePage.clickSaveAndProceed();
 
   await expect(page).toHaveURL(/home\/new-asset\/base-asset-details/);
-  await brochurePage.uploadThumbnail(BrochurePage.THUMBNAIL_IMAGE);
+  await brochurePage.uploadThumbnail(BrochurePage.THUMBNAIL_IMAGE_5);
   await brochurePage.dragCropSelection();
   await brochurePage.clickCropAndSubmit();
   await brochurePage.clickSaveAndProceed();
@@ -269,7 +269,7 @@ test('TC_BRO_06 - creates a Brochure without selecting a Content Type and confir
   await brochurePage.clickSaveAndProceed();
 
   await expect(page).toHaveURL(/home\/new-asset\/base-asset-details/);
-  await brochurePage.uploadThumbnail(BrochurePage.THUMBNAIL_IMAGE);
+  await brochurePage.uploadThumbnail(BrochurePage.THUMBNAIL_IMAGE_6);
   await brochurePage.dragCropSelection();
   await brochurePage.clickCropAndSubmit();
   await brochurePage.clickSaveAndProceed();
@@ -347,7 +347,7 @@ test('TC_BRO_08 - creates a Brochure with Content Type Product Presentation and 
   await brochurePage.clickSaveAndProceed();
 
   await expect(page).toHaveURL(/home\/new-asset\/base-asset-details/);
-  await brochurePage.uploadThumbnail(BrochurePage.THUMBNAIL_IMAGE);
+  await brochurePage.uploadThumbnail(BrochurePage.THUMBNAIL_IMAGE_2);
   await brochurePage.dragCropSelection();
   await brochurePage.clickCropAndSubmit();
   await brochurePage.clickSaveAndProceed();

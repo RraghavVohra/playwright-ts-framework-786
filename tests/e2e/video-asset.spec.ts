@@ -3,7 +3,9 @@ import { VideoAssetPage } from '../../pages/VideoAssetPage';
 import {
   VIDEO_ASSET_NAME,
   BROCHURE_CATEGORY,
+  BROCHURE_CATEGORY_2,
   VIDEO_HASHTAG,
+  BROCHURE_HASHTAG_2,
   SOCIAL_PARTNER_SEARCH,
   SOCIAL_PARTNER_NAME,
 } from '../../utils/config';
@@ -84,7 +86,7 @@ test('TC_VID_02 - creates a Video asset for Microsite only with Co-Branding and 
   await expect(page).toHaveURL(/home\/new-asset\/base-asset-details/);
   await videoAssetPage.deselectMobileDistribution();
   await videoAssetPage.selectMicrositeDistribution();
-  await videoAssetPage.uploadThumbnail(VideoAssetPage.THUMBNAIL_IMAGE);
+  await videoAssetPage.uploadThumbnail(VideoAssetPage.THUMBNAIL_IMAGE_2);
   await videoAssetPage.dragCropSelection();
   await videoAssetPage.clickCropAndSubmit();
   await videoAssetPage.clickSaveAndProceed();
@@ -131,7 +133,7 @@ test('TC_VID_03 - creates a Video asset for Mobile App and Microsite with Co-Bra
   await videoAssetPage.selectMicrositeDistribution();
 
   // Round 1 (Mobile) — fresh upload, crop, "Crop & Next" since Microsite's round remains.
-  await videoAssetPage.uploadThumbnail(VideoAssetPage.THUMBNAIL_IMAGE);
+  await videoAssetPage.uploadThumbnail(VideoAssetPage.THUMBNAIL_IMAGE_3);
   await videoAssetPage.dragCropSelection();
   await videoAssetPage.clickCropAndNext();
 
@@ -184,7 +186,7 @@ test('TC_VID_04 - creates a Video asset for Mobile App and Microsite with only t
   await expect(page).toHaveURL(/home\/new-asset\/base-asset-details/);
   await videoAssetPage.selectMicrositeDistribution();
 
-  await videoAssetPage.uploadThumbnail(VideoAssetPage.THUMBNAIL_IMAGE);
+  await videoAssetPage.uploadThumbnail(VideoAssetPage.THUMBNAIL_IMAGE_4);
   await videoAssetPage.dragCropSelection();
   await videoAssetPage.clickCropAndNext();
 
@@ -235,7 +237,7 @@ test('TC_VID_05 - creates a Video asset for Mobile App and Microsite with no tog
   await videoAssetPage.selectMicrositeDistribution();
 
   // Round 1 (Mobile) — fresh upload, crop, "Crop & Next" since Microsite's round remains.
-  await videoAssetPage.uploadThumbnail(VideoAssetPage.THUMBNAIL_IMAGE);
+  await videoAssetPage.uploadThumbnail(VideoAssetPage.THUMBNAIL_IMAGE_5);
   await videoAssetPage.dragCropSelection();
   await videoAssetPage.clickCropAndNext();
 
@@ -257,5 +259,273 @@ test('TC_VID_05 - creates a Video asset for Mobile App and Microsite with no tog
   await videoAssetPage.filterByVideo();
   await videoAssetPage.searchLibrary(videoName);
 
+  await expect(videoAssetPage.getAssetByTitle(videoName).first()).toBeVisible();
+});
+
+// TC_VID_06 — Mobile App only, special characters (apostrophe, ampersand, hash) in the
+// Name field — guards against the same class of bug as Fixes.md Fix 4 (an apostrophe
+// breaking a hand-built XPath string). Otherwise identical to TC_VID_01.
+test('TC_VID_06 - creates a Video asset with special characters in the name and confirms it appears in the Asset Library', async ({ videoAssetPage, page }) => {
+  const videoName = `Video's & Clips #1_${Date.now()}`;
+
+  await videoAssetPage.navigateToCreateVideo();
+  await expect(page).toHaveURL(/home\/new-asset\/upload-asset/);
+
+  await videoAssetPage.uploadVideoFile(VideoAssetPage.VIDEO_FILE);
+  await videoAssetPage.clickNext();
+
+  await expect(page).toHaveURL(/home\/new-asset\/global-asset-details/);
+  await videoAssetPage.enterName(videoName);
+  await videoAssetPage.selectCategories([BROCHURE_CATEGORY]);
+  await videoAssetPage.selectHashtags([VIDEO_HASHTAG]);
+  await videoAssetPage.selectMicrositeUrl();
+  await videoAssetPage.enterDescription('This is a video only for testing purpose.');
+  await videoAssetPage.clickSaveAndProceed();
+
+  await expect(page).toHaveURL(/home\/new-asset\/base-asset-details/);
+  await videoAssetPage.uploadThumbnail(VideoAssetPage.THUMBNAIL_IMAGE_6);
+  await videoAssetPage.dragCropSelection();
+  await videoAssetPage.clickCropAndSubmit();
+  await videoAssetPage.clickSaveAndProceed();
+
+  await expect(page).toHaveURL(/home\/new-asset\/publish-asset/, { timeout: 45 * 1000 });
+  await videoAssetPage.selectMobileApp();
+  await videoAssetPage.selectPartner(SOCIAL_PARTNER_SEARCH, SOCIAL_PARTNER_NAME);
+  await videoAssetPage.checkCoBrandingPush();
+  await videoAssetPage.checkCoBrandingToggle();
+  await videoAssetPage.selectStartFrameCobrand();
+  await videoAssetPage.checkPushNotificationsToggle();
+  await videoAssetPage.checkEmailNotificationsToggle();
+  await videoAssetPage.clickPublish();
+
+  await expect(page).toHaveURL(/home\/AssetLibrary/);
+  await videoAssetPage.filterByVideo();
+  await videoAssetPage.searchLibrary(videoName);
+
+  await expect(videoAssetPage.getAssetByTitle(videoName)).toBeVisible();
+});
+
+// TC_VID_07 — Mobile App only, MULTIPLE categories and hashtags selected together (open
+// once, select each, close once — see VideoAssetPage.selectCategories()/selectHashtags()).
+// Reuses BROCHURE_CATEGORY_2/BROCHURE_HASHTAG_2 since Categories/Hashtags are shared,
+// app-wide lists, not asset-type-specific data.
+test('TC_VID_07 - creates a Video asset with multiple categories and hashtags and confirms it appears in the Asset Library', async ({ videoAssetPage, page }) => {
+  const videoName = `${VIDEO_ASSET_NAME}_${Date.now()}`;
+
+  await videoAssetPage.navigateToCreateVideo();
+  await expect(page).toHaveURL(/home\/new-asset\/upload-asset/);
+
+  await videoAssetPage.uploadVideoFile(VideoAssetPage.VIDEO_FILE);
+  await videoAssetPage.clickNext();
+
+  await expect(page).toHaveURL(/home\/new-asset\/global-asset-details/);
+  await videoAssetPage.enterName(videoName);
+  await videoAssetPage.selectCategories([BROCHURE_CATEGORY, BROCHURE_CATEGORY_2]);
+  await videoAssetPage.selectHashtags([VIDEO_HASHTAG, BROCHURE_HASHTAG_2]);
+  await videoAssetPage.selectMicrositeUrl();
+  await videoAssetPage.enterDescription('This is a video only for testing purpose.');
+  await videoAssetPage.clickSaveAndProceed();
+
+  await expect(page).toHaveURL(/home\/new-asset\/base-asset-details/);
+  await videoAssetPage.uploadThumbnail(VideoAssetPage.THUMBNAIL_IMAGE);
+  await videoAssetPage.dragCropSelection();
+  await videoAssetPage.clickCropAndSubmit();
+  await videoAssetPage.clickSaveAndProceed();
+
+  await expect(page).toHaveURL(/home\/new-asset\/publish-asset/, { timeout: 45 * 1000 });
+  await videoAssetPage.selectMobileApp();
+  await videoAssetPage.selectPartner(SOCIAL_PARTNER_SEARCH, SOCIAL_PARTNER_NAME);
+  await videoAssetPage.checkCoBrandingPush();
+  await videoAssetPage.checkCoBrandingToggle();
+  await videoAssetPage.selectStartFrameCobrand();
+  await videoAssetPage.checkPushNotificationsToggle();
+  await videoAssetPage.checkEmailNotificationsToggle();
+  await videoAssetPage.clickPublish();
+
+  await expect(page).toHaveURL(/home\/AssetLibrary/);
+  await videoAssetPage.filterByVideo();
+  await videoAssetPage.searchLibrary(videoName);
+
+  await expect(videoAssetPage.getAssetByTitle(videoName)).toBeVisible();
+});
+
+// TC_VID_08 — Mobile App only, "End frame Cobrand" instead of "Start frame Cobrand" — the
+// Co-Branding toggle's radio has two options and every other test so far only exercises
+// the Start option.
+test('TC_VID_08 - creates a Video asset with End frame Cobrand selected and confirms it appears in the Asset Library', async ({ videoAssetPage, page }) => {
+  const videoName = `${VIDEO_ASSET_NAME}_${Date.now()}`;
+
+  await videoAssetPage.navigateToCreateVideo();
+  await expect(page).toHaveURL(/home\/new-asset\/upload-asset/);
+
+  await videoAssetPage.uploadVideoFile(VideoAssetPage.VIDEO_FILE);
+  await videoAssetPage.clickNext();
+
+  await expect(page).toHaveURL(/home\/new-asset\/global-asset-details/);
+  await videoAssetPage.enterName(videoName);
+  await videoAssetPage.selectCategories([BROCHURE_CATEGORY]);
+  await videoAssetPage.selectHashtags([VIDEO_HASHTAG]);
+  await videoAssetPage.selectMicrositeUrl();
+  await videoAssetPage.enterDescription('This is a video only for testing purpose.');
+  await videoAssetPage.clickSaveAndProceed();
+
+  await expect(page).toHaveURL(/home\/new-asset\/base-asset-details/);
+  await videoAssetPage.uploadThumbnail(VideoAssetPage.THUMBNAIL_IMAGE_2);
+  await videoAssetPage.dragCropSelection();
+  await videoAssetPage.clickCropAndSubmit();
+  await videoAssetPage.clickSaveAndProceed();
+
+  await expect(page).toHaveURL(/home\/new-asset\/publish-asset/, { timeout: 45 * 1000 });
+  await videoAssetPage.selectMobileApp();
+  await videoAssetPage.selectPartner(SOCIAL_PARTNER_SEARCH, SOCIAL_PARTNER_NAME);
+  await videoAssetPage.checkCoBrandingPush();
+  await videoAssetPage.checkCoBrandingToggle();
+  await videoAssetPage.selectEndFrameCobrand();
+  await videoAssetPage.checkPushNotificationsToggle();
+  await videoAssetPage.checkEmailNotificationsToggle();
+  await videoAssetPage.clickPublish();
+
+  await expect(page).toHaveURL(/home\/AssetLibrary/);
+  await videoAssetPage.filterByVideo();
+  await videoAssetPage.searchLibrary(videoName);
+
+  await expect(videoAssetPage.getAssetByTitle(videoName)).toBeVisible();
+});
+
+// TC_VID_09 — Mobile App only, .mov file instead of .mp4 — confirms the second supported
+// video format actually works, not just the one from the original recording.
+test('TC_VID_09 - creates a Video asset from a .mov file and confirms it appears in the Asset Library', async ({ videoAssetPage, page }) => {
+  const videoName = `${VIDEO_ASSET_NAME}_${Date.now()}`;
+
+  await videoAssetPage.navigateToCreateVideo();
+  await expect(page).toHaveURL(/home\/new-asset\/upload-asset/);
+
+  await videoAssetPage.uploadVideoFile(VideoAssetPage.VIDEO_FILE_MOV);
+  await videoAssetPage.clickNext();
+
+  await expect(page).toHaveURL(/home\/new-asset\/global-asset-details/);
+  await videoAssetPage.enterName(videoName);
+  await videoAssetPage.selectCategories([BROCHURE_CATEGORY]);
+  await videoAssetPage.selectHashtags([VIDEO_HASHTAG]);
+  await videoAssetPage.selectMicrositeUrl();
+  await videoAssetPage.enterDescription('This is a video only for testing purpose.');
+  await videoAssetPage.clickSaveAndProceed();
+
+  await expect(page).toHaveURL(/home\/new-asset\/base-asset-details/);
+  await videoAssetPage.uploadThumbnail(VideoAssetPage.THUMBNAIL_IMAGE_3);
+  await videoAssetPage.dragCropSelection();
+  await videoAssetPage.clickCropAndSubmit();
+  await videoAssetPage.clickSaveAndProceed();
+
+  await expect(page).toHaveURL(/home\/new-asset\/publish-asset/, { timeout: 45 * 1000 });
+  await videoAssetPage.selectMobileApp();
+  await videoAssetPage.selectPartner(SOCIAL_PARTNER_SEARCH, SOCIAL_PARTNER_NAME);
+  await videoAssetPage.checkCoBrandingPush();
+  await videoAssetPage.checkCoBrandingToggle();
+  await videoAssetPage.selectStartFrameCobrand();
+  await videoAssetPage.checkPushNotificationsToggle();
+  await videoAssetPage.checkEmailNotificationsToggle();
+  await videoAssetPage.clickPublish();
+
+  await expect(page).toHaveURL(/home\/AssetLibrary/);
+  await videoAssetPage.filterByVideo();
+  await videoAssetPage.searchLibrary(videoName);
+
+  await expect(videoAssetPage.getAssetByTitle(videoName)).toBeVisible();
+});
+
+// TC_VID_10 — Microsite only, .mov file. Same platform setup as TC_VID_02 (deselect Mobile,
+// select Microsite, Email Notifications skipped since it's disabled for Microsite-only).
+test('TC_VID_10 - creates a Video asset for Microsite only from a .mov file and confirms it appears in the Asset Library', async ({ videoAssetPage, page }) => {
+  const videoName = `${VIDEO_ASSET_NAME}_${Date.now()}`;
+
+  await videoAssetPage.navigateToCreateVideo();
+  await expect(page).toHaveURL(/home\/new-asset\/upload-asset/);
+
+  await videoAssetPage.uploadVideoFile(VideoAssetPage.VIDEO_FILE_MOV);
+  await videoAssetPage.clickNext();
+
+  await expect(page).toHaveURL(/home\/new-asset\/global-asset-details/);
+  await videoAssetPage.enterName(videoName);
+  await videoAssetPage.selectCategories([BROCHURE_CATEGORY]);
+  await videoAssetPage.selectHashtags([VIDEO_HASHTAG]);
+  await videoAssetPage.selectMicrositeUrl();
+  await videoAssetPage.enterDescription('This is a video only for testing purpose.');
+  await videoAssetPage.clickSaveAndProceed();
+
+  await expect(page).toHaveURL(/home\/new-asset\/base-asset-details/);
+  await videoAssetPage.deselectMobileDistribution();
+  await videoAssetPage.selectMicrositeDistribution();
+  await videoAssetPage.uploadThumbnail(VideoAssetPage.THUMBNAIL_IMAGE_4);
+  await videoAssetPage.dragCropSelection();
+  await videoAssetPage.clickCropAndSubmit();
+  await videoAssetPage.clickSaveAndProceed();
+
+  await expect(page).toHaveURL(/home\/new-asset\/publish-asset/, { timeout: 45 * 1000 });
+  await videoAssetPage.selectMicrositePlatform();
+  await videoAssetPage.selectPartner(SOCIAL_PARTNER_SEARCH, SOCIAL_PARTNER_NAME);
+  await videoAssetPage.checkCoBrandingPush();
+  await videoAssetPage.checkCoBrandingToggle();
+  await videoAssetPage.selectStartFrameCobrand();
+  await videoAssetPage.checkPushNotificationsToggle();
+  // Deliberately no checkEmailNotificationsToggle() — disabled for Microsite-only.
+  await videoAssetPage.clickPublish();
+
+  await expect(page).toHaveURL(/home\/AssetLibrary/);
+  await videoAssetPage.filterByMicrosite();
+  await videoAssetPage.searchLibrary(videoName);
+
+  await expect(videoAssetPage.getAssetByTitle(videoName)).toBeVisible();
+});
+
+// TC_VID_11 — Mobile App AND Microsite together, .mov file. Same dual-round thumbnail path
+// as TC_VID_03 — round 1 (Mobile) uploads the .mov file fresh, round 2 (Microsite) reuses it.
+test('TC_VID_11 - creates a Video asset for Mobile App and Microsite from a .mov file and confirms it appears in the Asset Library', async ({ videoAssetPage, page }) => {
+  const videoName = `${VIDEO_ASSET_NAME}_${Date.now()}`;
+
+  await videoAssetPage.navigateToCreateVideo();
+  await expect(page).toHaveURL(/home\/new-asset\/upload-asset/);
+
+  await videoAssetPage.uploadVideoFile(VideoAssetPage.VIDEO_FILE_MOV);
+  await videoAssetPage.clickNext();
+
+  await expect(page).toHaveURL(/home\/new-asset\/global-asset-details/);
+  await videoAssetPage.enterName(videoName);
+  await videoAssetPage.selectCategories([BROCHURE_CATEGORY]);
+  await videoAssetPage.selectHashtags([VIDEO_HASHTAG]);
+  await videoAssetPage.selectMicrositeUrl();
+  await videoAssetPage.enterDescription('This is a video only for testing purpose.');
+  await videoAssetPage.clickSaveAndProceed();
+
+  await expect(page).toHaveURL(/home\/new-asset\/base-asset-details/);
+  await videoAssetPage.selectMicrositeDistribution();
+
+  // Round 1 (Mobile) — fresh upload, crop, "Crop & Next" since Microsite's round remains.
+  await videoAssetPage.uploadThumbnail(VideoAssetPage.THUMBNAIL_IMAGE_5);
+  await videoAssetPage.dragCropSelection();
+  await videoAssetPage.clickCropAndNext();
+
+  // Round 2 (Microsite) — reuse the same .mov file, crop, "Crop & Submit" as the last round.
+  await videoAssetPage.selectUploadedFileForNextThumbnail(VideoAssetPage.VIDEO_FILE_MOV.split('/').pop()!);
+  await videoAssetPage.dragCropSelection();
+  await videoAssetPage.clickCropAndSubmit();
+  await videoAssetPage.clickSaveAndProceed();
+
+  await expect(page).toHaveURL(/home\/new-asset\/publish-asset/, { timeout: 45 * 1000 });
+  await videoAssetPage.selectMobileApp();
+  await videoAssetPage.selectMicrositePlatform();
+  await videoAssetPage.selectPartner(SOCIAL_PARTNER_SEARCH, SOCIAL_PARTNER_NAME);
+  await videoAssetPage.checkCoBrandingPush();
+  await videoAssetPage.checkCoBrandingToggle();
+  await videoAssetPage.selectStartFrameCobrand();
+  await videoAssetPage.checkPushNotificationsToggle();
+  await videoAssetPage.checkEmailNotificationsToggle();
+  await videoAssetPage.clickPublish();
+
+  await expect(page).toHaveURL(/home\/AssetLibrary/);
+  await videoAssetPage.filterByVideo();
+  await videoAssetPage.searchLibrary(videoName);
+
+  // Publishing to BOTH platforms produces two Asset Library cards sharing the same title.
   await expect(videoAssetPage.getAssetByTitle(videoName).first()).toBeVisible();
 });

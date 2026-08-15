@@ -2,6 +2,30 @@
 
 ---
 
+## Fix 38 — Video Asset feature build: shared components reused correctly, two naming divergences caught before they became bugs, one genuine app constraint discovered mid-test
+
+**Files:** `pages/VideoAssetPage.ts` (new), `tests/e2e/video-asset.spec.ts` (new, 11 tests), `utils/fixtures.ts`, `utils/config.ts`
+
+**Context:** Video is the 4th asset type through the shared "New Asset" wizard (after Banners, Social Post, Brochure). Built from a codegen recording, same discovery process as the other three — confirm every ambiguous locator against real DevTools markup before writing code, never assume symmetry with an existing page object just because two features look alike.
+
+**What turned out to be genuinely shared (confirmed, not assumed):**
+- Categories/Hashtags multi-select, the react-select partner picker, "Co-Branding Push" checkbox, and the Mobile App checkbox's own name (`brochure-platform`) — all identical to Brochure's implementation.
+- The base-asset-details page's Mobile/Microsite distribution checkboxes (`mobile-app`/`microsite`) — also identical to Brochure.
+
+**What looked shared but wasn't (confirmed via DevTools before writing any code, not discovered via a failing test):**
+- The Publish page's Microsite checkbox is named `microsite-platform` on Video, not the plain `microsite` Brochure uses. Assuming symmetry here — reasonable given everything else lined up — would have silently selected nothing.
+- The video file's real hidden input lives inside `div.files-upload-wrapper.video`, not a bare `input[type="file"]` — codegen had recorded `setInputFiles()` on the decorative "Attach" button itself (same class of artifact as the historic `body.setInputFiles` bug), which doesn't work.
+
+**A new locator problem this feature introduced:** the Co-Branding / Push Notifications / Email Notifications toggles and the Start/End frame Cobrand radios all share the exact same non-unique `id="custom-switch"`, and the two radios only render once Co-Branding itself is toggled on. Brochure and Social Post hit this same duplicate-id situation earlier but never learned the individual labels, so they fell back to positional `.nth()` indexing (documented in both files as "no confirmed individual labels"). For Video the labels *were* confirmed via DevTools, so instead of positional indexing (which would silently point at a different element once the conditional radios render), each toggle is located by scoping to its own `.form-check` container filtered by its label text — immune to how many siblings exist or in what order.
+
+**A genuine app behavior, found by a real test failure, not a locator bug:** `TC_VID_02` (Microsite-only) timed out on `checkEmailNotificationsToggle()` — the element resolved correctly but was `disabled`. Confirmed manually: Email Notifications is only enabled when Mobile App is part of the selection, not for Microsite-only. Fixed by removing that step from `TC_VID_02` (with a comment explaining why) rather than chasing a locator issue that didn't exist.
+
+**Coverage:** grew from an initial 5 tests (one per platform combination × toggle variation) to 11 after a deliberate gap review — added special characters in the Name field (an apostrophe/ampersand/hash, since the *original* codegen recording had one and none of the first 5 tests did), multiple categories/hashtags together, the "End frame Cobrand" radio option (previously only "Start" was ever exercised), and `.mov` as a second supported format (confirmed via the upload screen's own helper text) across all three platform combinations (Mobile-only, Microsite-only, both).
+
+**Interview angle:** Two different failure modes, two different tools to catch them. The Microsite checkbox name and the video file input were caught *before* running anything, by inspecting real markup instead of assuming Video would mirror Brochure — cheap to fix because they were never wrong in committed code. The Email Notifications constraint could only be caught by actually running the test — no amount of markup inspection reveals a `disabled` attribute that only appears under one specific prior selection. Knowing which category a given uncertainty falls into (verifiable statically vs. only observable at runtime) is what decides whether to stop and ask for a screenshot or just run it and see.
+
+---
+
 ## Fix 37 — TC_DL_34: stale hashtag value, then a case-sensitivity mismatch, then a locator hardcoded independently of its own config value
 
 **File:** `utils/config.ts`, `.env`, `pages/DocumentLibraryPage.ts`

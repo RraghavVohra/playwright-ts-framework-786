@@ -62,7 +62,7 @@ test('TC_SPA_02 - creates a Social Post asset for Social/Facebook/Twitter/Linked
   await socialPostAssetPage.navigateToCreateSocialPost();
   await expect(page).toHaveURL(/home\/new-asset\/upload-asset/);
 
-  await socialPostAssetPage.uploadAssetImage(SocialPostAssetPage.IMAGE_FILE);
+  await socialPostAssetPage.uploadAssetImage(SocialPostAssetPage.IMAGE_FILE_2);
   await socialPostAssetPage.clickNext();
 
   await expect(page).toHaveURL(/home\/new-asset\/global-asset-details/);
@@ -74,7 +74,7 @@ test('TC_SPA_02 - creates a Social Post asset for Social/Facebook/Twitter/Linked
   await socialPostAssetPage.clickSaveAndProceed();
 
   await expect(page).toHaveURL(/home\/new-asset\/base-asset-details/);
-  await socialPostAssetPage.uploadThumbnail(SocialPostAssetPage.IMAGE_FILE);
+  await socialPostAssetPage.uploadThumbnail(SocialPostAssetPage.IMAGE_FILE_2);
   await socialPostAssetPage.dragCropSelection();
   await socialPostAssetPage.clickCropAndSubmit();
   await socialPostAssetPage.clickSaveAndProceed();

@@ -63,7 +63,14 @@ export class BrochurePage {
   // selectUploadedFileForNextThumbnail() was built from — using the same file here
   // increases the odds that its filename-matching logic actually lines up.
   static readonly PDF_FILE = 'test-data/Autopost Done Notification.pdf';
+  // Rotated across the 8 tests in brochure.spec.ts so created assets don't all show the
+  // identical thumbnail in the Asset Library — purely visual variety, no functional purpose.
   static readonly THUMBNAIL_IMAGE = 'test-data/Amsterdam.png';
+  static readonly THUMBNAIL_IMAGE_2 = 'test-data/Sweden.png';
+  static readonly THUMBNAIL_IMAGE_3 = 'test-data/newzealnd.png';
+  static readonly THUMBNAIL_IMAGE_4 = 'test-data/empirestate.png';
+  static readonly THUMBNAIL_IMAGE_5 = 'test-data/indiagate.png';
+  static readonly THUMBNAIL_IMAGE_6 = 'test-data/goldengate.jpg';
 
   // Ampersand AND apostrophe in the filename — deliberately exercises the same class of
   // bug as Fixes.md Fix 4 (an apostrophe breaking a hand-built XPath string).
