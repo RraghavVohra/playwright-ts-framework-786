@@ -44,6 +44,18 @@ jobs:
     # USER_EMAIL/USER_PASSWORD secrets under the same names.
     # If an environment has no secrets of its own, repo-level secrets are used as fallback.
     environment: ${{ inputs.environment }}
+     # NEW — SHARDING (15 Aug 2026)
+    # Before this, the job ran ALL tests as one single job (one orchestrator,
+    # one machine). This "strategy: matrix" block tells GitHub Actions to spin up
+    # 4 SEPARATE parallel jobs instead — one per shardIndex (1,2,3,4). Each job
+    # gets its own runner, its own auth.setup.ts login, its own set of workers.
+    # fail-fast: false = if one shard fails, the other 3 keep running instead of
+    # GitHub cancelling everything (each shard's result is independent).
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2, 3, 4]
+        shardTotal: [4]
     # LIST OF STEPS — executed top to bottom in order
     steps:
     # Step 1 — Pull your code from GitHub onto the runner machine
@@ -65,7 +77,7 @@ jobs:
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
-    # Step 5 — Run Playwright tests on Azure cloud
+   # Step 5 — Run Playwright tests on Azure cloud
     # PLAYWRIGHT_SERVICE_URL tells Playwright to use Azure cloud browsers
     # --config = use Azure service config instead of local config
     # --workers = how many tests run in parallel, chosen from the dropdown above
@@ -77,7 +89,11 @@ jobs:
          USER_EMAIL: ${{ secrets.USER_EMAIL }}
          USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
          WORKERS: ${{ inputs.workers }}
-      run: npx playwright test --config=playwright.service.config.ts --workers=${{ inputs.workers }}
+    # NEW — SHARDING (15 Aug 2026)
+    # Original command only had --workers. Added --shard=X/Y so each of the 4
+    # parallel jobs above only runs its own 1/4th slice of the 104 tests
+    # (~26 tests per shard), instead of all 4 jobs redundantly running all 104.
+      run: npx playwright test --config=playwright.service.config.ts --workers=${{ inputs.workers }} --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
     # Step 6 — Upload test report as artifact to GitHub
     # The if statement means-> upload report even if tests failed
     # retention-days: 30 = report stays available for 30 days
@@ -85,6 +101,11 @@ jobs:
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
-        name: playwright-report
+      # NEW — SHARDING (15 Aug 2026)
+      # Original name was just "playwright-report" (no variable). Since all 4
+      # shards now run this same step, they'd all try to upload an artifact
+      # with the SAME name and clash/overwrite. Adding ${{ matrix.shardIndex }}
+      # makes each one unique: playwright-report-1, playwright-report-2, etc.
+        name: playwright-report-${{ matrix.shardIndex }}
         path: azure-report/
         retention-days: 30
