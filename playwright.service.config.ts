@@ -23,7 +23,9 @@ export default defineConfig(
     */
     reporter: [
      ["html", { open: "never", outputFolder: "azure-report" }],
-     ["@azure/playwright/reporter"],
+     ["@azure/playwright/reporter", {
+    runName: `Run - ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} - Workers: ${process.env.WORKERS || '1'}`,
+    }],
      ],
   }
-);
+)

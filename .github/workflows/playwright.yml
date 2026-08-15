@@ -76,6 +76,7 @@ jobs:
          ENV: ${{ inputs.environment }}
          USER_EMAIL: ${{ secrets.USER_EMAIL }}
          USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
+         WORKERS: ${{ inputs.workers }}
       run: npx playwright test --config=playwright.service.config.ts --workers=${{ inputs.workers }}
     # Step 6 — Upload test report as artifact to GitHub
     # The if statement means-> upload report even if tests failed
