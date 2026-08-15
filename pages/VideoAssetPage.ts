@@ -32,12 +32,11 @@ export class VideoAssetPage {
   private saveAndProceedButton: Locator;
 
   // Base Asset Details page — thumbnail upload + crop (same ReactCrop widget as
-  // Banners/Social Post/Brochure). NOTE: unlike BrochurePage, this page object does not
-  // yet have selectMobileDistribution()/selectMicrositeDistribution() — the checkboxes
-  // that control whether a second thumbnail round appears here haven't been confirmed
-  // against real markup yet (Video's publish-page checkbox names already turned out to
-  // differ from Brochure's, so guessing these would be exactly the kind of assumption
-  // that's bitten this project before). To add once TC_VID_02/05 need them.
+  // Banners/Social Post/Brochure). These distribution checkboxes DO match Brochure's names
+  // exactly ('mobile-app'/'microsite') — confirmed via DevTools, not assumed (worth noting
+  // since Video's Publish-page checkboxes below turned out NOT to all match Brochure's).
+  private mobileDistributionCheckbox: Locator;
+  private micrositeDistributionCheckbox: Locator;
   private thumbnailFileInput: Locator;
   private cropSelection: Locator;
   private cropAndNextButton: Locator;
@@ -74,6 +73,10 @@ export class VideoAssetPage {
   // framework — not confirmed against real markup, consistent with how Brochure's
   // equivalent filter buttons were originally added.
   private videoFilterButton: Locator;
+  // Microsite-only content shows under its own "Microsite" filter, not "Video" — same
+  // assumption Brochure's micrositeFilterButton makes (global Asset Library filter,
+  // shared across every asset type, not specific to this page object).
+  private micrositeFilterButton: Locator;
   private searchLibraryInput: Locator;
 
   static readonly VIDEO_FILE = 'test-data/video.mp4';
@@ -95,6 +98,8 @@ export class VideoAssetPage {
     this.descriptionInput = page.getByRole('textbox', { name: 'Description' });
     this.saveAndProceedButton = page.getByRole('button', { name: 'Save & Proceed' });
 
+    this.mobileDistributionCheckbox = page.locator('input[name="mobile-app"]');
+    this.micrositeDistributionCheckbox = page.locator('input[name="microsite"]');
     // Same duplicate-hidden-input situation as Brochure — .first() targets the round
     // actually being uploaded to.
     this.thumbnailFileInput = page.locator('input[type="file"]').first();
@@ -117,6 +122,7 @@ export class VideoAssetPage {
     this.publishButton = page.getByRole('button', { name: 'Publish' });
 
     this.videoFilterButton = page.getByRole('button', { name: 'Video', exact: true });
+    this.micrositeFilterButton = page.getByRole('button', { name: 'Microsite' });
     this.searchLibraryInput = page.getByRole('textbox', { name: 'Search library' });
   }
 
@@ -188,6 +194,18 @@ export class VideoAssetPage {
   // BASE ASSET DETAILS PAGE — THUMBNAIL + CROP
   // ─────────────────────────────────────────────────────────────────────
 
+  // Mobile is checked by default — uncheck it for a Microsite-only flow.
+  // Call before selectMicrositeDistribution().
+  async deselectMobileDistribution(): Promise<void> {
+    await this.mobileDistributionCheckbox.uncheck();
+  }
+
+  // Checking this adds a SECOND thumbnail/crop round (Microsite) on top of the default
+  // Mobile round — call before uploadThumbnail() if you want both.
+  async selectMicrositeDistribution(): Promise<void> {
+    await this.micrositeDistributionCheckbox.check();
+  }
+
   async uploadThumbnail(filePath: string): Promise<void> {
     await this.thumbnailFileInput.setInputFiles(filePath);
   }
@@ -207,6 +225,16 @@ export class VideoAssetPage {
       await this.page.mouse.move(startX + offsetX, startY + offsetY);
       await this.page.mouse.up();
     }
+  }
+
+  // The second thumbnail round (Microsite) reuses the already-uploaded file instead of
+  // attaching a new one — same mechanism as BrochurePage.selectUploadedFileForNextThumbnail()
+  // (click a div showing the filename, spaces replaced by underscores). The nth(4) index
+  // is carried over from Brochure's own best-effort, not independently confirmed for
+  // Video — TC_VID_05 is what actually proves this works.
+  async selectUploadedFileForNextThumbnail(fileName: string): Promise<void> {
+    const displayName = fileName.replace(/ /g, '_');
+    await this.page.locator('div').filter({ hasText: new RegExp(`^${displayName}$`) }).nth(4).click();
   }
 
   // Use when another thumbnail round remains (Microsite selected too).
@@ -280,6 +308,10 @@ export class VideoAssetPage {
 
   async filterByVideo(): Promise<void> {
     await this.videoFilterButton.click();
+  }
+
+  async filterByMicrosite(): Promise<void> {
+    await this.micrositeFilterButton.click();
   }
 
   async searchLibrary(term: string): Promise<void> {
