@@ -12,7 +12,7 @@ It's built to run anywhere: a developer's machine, Jenkins (on-prem), or GitHub 
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Tech Stackk
 
 | Category | Tool |
 |---|---|
