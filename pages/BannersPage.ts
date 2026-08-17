@@ -2,7 +2,7 @@ import { Page, Locator } from '@playwright/test';
 
 // Banners is one of four asset types (Brochure, Video, Social Post, Banners) that share
 // the same "New Asset" wizard — this page object only covers the Banners path through it.
-
+//
 export class BannersPage {
 
   private page: Page;
