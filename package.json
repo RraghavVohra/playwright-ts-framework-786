@@ -12,7 +12,7 @@
     "report": "allure generate allure-results --clean && allure open",
     "report:show": "npx playwright show-report",
     "report:azure": "npx playwright show-report azure-report",
-    "clean:reports": "if exist playwright-report rmdir /s /q playwright-report && if exist allure-report rmdir /s /q allure-report && if exist allure-results rmdir /s /q allure-results && if exist azure-report rmdir /s /q azure-report"
+    "clean:reports": "rimraf playwright-report allure-report allure-results azure-report"
   },
   "keywords": [],
   "author": "",
@@ -25,6 +25,7 @@
     "@types/node": "^25.6.2",
     "allure-playwright": "^3.9.0",
     "dotenv": "^17.4.2",
+    "rimraf": "^6.1.3",
     "typescript": "^6.0.3"
   }
 }
