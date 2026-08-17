@@ -11,3 +11,17 @@ node_modules/
 # Playwright generates these folders when tests run — not source code
 test-results/
 playwright-report/
+
+# NEW — Allure generates these fresh on every run (hundreds of JSON files).
+# They were getting committed because nothing here excluded them.
+allure-results/
+allure-report/
+
+# NEW — Azure Playwright Testing's local report output (used in the sharding workflow)
+azure-report/
+
+# NEW — zipped report artifacts, shouldn't live in source control
+*.zip
+
+# NEW — Windows folder-customization junk file, gets auto-created, not source code
+desktop.ini
