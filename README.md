@@ -111,7 +111,20 @@ Jenkins is also supported as an alternate CI runner, with Allure reporting and e
 - **Cloud-native parallel execution** — browsers run on Azure's infrastructure, decoupling test throughput from the CI runner's local compute.
 
 ---
+## 🧠 Engineering Decisions — What & Why
 
+Every non-trivial choice in this framework solves a specific problem encountered while scaling the suite — not adopted just because it's trendy.
+
+| Decision | Problem It Solved |
+|---|---|
+| **4-way test sharding** (GitHub Actions matrix) | A single CI job's orchestrator (2 vCPU runner) became the coordination bottleneck as the suite grew — not the cloud browsers. Splitting into 4 independent jobs, each with its own orchestrator, removed that ceiling. |
+| **Azure Playwright Testing** (cloud browsers) | The CI runner's local CPU couldn't scale browser execution — offloading actual browser rendering to Azure's VM fleet decouples test throughput from the runner's compute. |
+| **Fixture-based Page Object injection** | Manually instantiating page objects in every test file duplicates setup code. Custom fixtures inject typed, ready-to-use page objects automatically. |
+| **`.gitignore` cleanup** (Allure/Azure reports untracked) | 280+ auto-generated Allure result files were committed to git, bloating the repo and polluting history on every test run. |
+| **Cross-platform npm scripts** (`rimraf`) | The original cleanup script used Windows-only `cmd.exe` syntax (`if exist ... rmdir`) — it silently failed on Mac/Linux. `rimraf` makes the same command OS-independent. |
+| **ESLint + `eslint-plugin-playwright`** | Catches Playwright-specific anti-patterns — missing `await`s, hard waits, `networkidle` usage — *before* they become flaky tests. First run surfaced 31 pre-existing issues, including real bugs (tests with zero assertions, unreliable waits). |
+| **Prettier** | Removes formatting debates and keeps every file visually consistent regardless of who wrote it. |
+| **Husky + lint-staged pre-commit hook** | Without automation, code quality depends on developer discipline. The hook runs ESLint automatically on every commit's staged files — catching issues before they even reach GitHub. |
 
 ## 📄 License
 
