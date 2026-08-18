@@ -4,6 +4,7 @@ import { BANNER_NAME, SOCIAL_PARTNER_SEARCH, SOCIAL_PARTNER_NAME } from '../../u
 
 // Runs before EVERY test in this file: land on the home page first.
 // Login already handled by auth.json (storageState), so we arrive logged in.
+// 
 test.beforeEach(async ({ page }) => {
   await page.goto('/home');
 });
