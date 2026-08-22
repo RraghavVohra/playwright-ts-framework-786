@@ -1,5 +1,6 @@
 import { test, expect } from '../../utils/fixtures';
 import { SOCIAL_TITLE, SOCIAL_DESCRIPTION, SOCIAL_CUSTOM_URL } from '../../utils/config';
+import { SocialAutoPostPage } from '../../pages/SocialAutoPostPage';
 
 test.describe('Social Auto Post', { tag: ['@regression'] }, () => {
 
@@ -36,7 +37,7 @@ test.describe('Social Auto Post', { tag: ['@regression'] }, () => {
   // The picker disables past dates. Using tomorrow ensures the selected day
   // is always valid regardless of when the test runs.
   // ─────────────────────────────────────────────────────────────────────
-  test('TC_SAP_01 - Post PNG image 800X460 with cobranding enabled on Facebook', { tag: ['@smoke'] }, async ({ socialAutoPostPage }) => {
+  test('TC_SAP_01 - Post PNG image 800X460 with cobranding enabled on Facebook', { tag: ['@smoke'] }, async ({ socialAutoPostPage, page }) => {
     await socialAutoPostPage.uploadFileInPNG();
     await socialAutoPostPage.scrollDownByTwoHundred();
     await socialAutoPostPage.clickEnableCobrandingButton();
@@ -58,6 +59,7 @@ test.describe('Social Auto Post', { tag: ['@regression'] }, () => {
     await socialAutoPostPage.verifyDateTimeSelection();
 
     await socialAutoPostPage.clickSchedulePostButton();
+    await expect(page).toHaveURL(/sp-auto-post-campaign-list\.php/);
   });
 
 
@@ -69,7 +71,7 @@ test.describe('Social Auto Post', { tag: ['@regression'] }, () => {
   // What it verifies: same flow as TC_SAP_01 but using a JPG file.
   // Covers a different file format on the same form path.
   // ─────────────────────────────────────────────────────────────────────
-  test('TC_SAP_02 - Post JPG image with cobranding enabled on Facebook', async ({ socialAutoPostPage }) => {
+  test('TC_SAP_02 - Post JPG image with cobranding enabled on Facebook', async ({ socialAutoPostPage, page }) => {
     await socialAutoPostPage.uploadFileInJPG();
     await socialAutoPostPage.scrollDownByTwoHundred();
     await socialAutoPostPage.clickEnableCobrandingButton();
@@ -91,6 +93,7 @@ test.describe('Social Auto Post', { tag: ['@regression'] }, () => {
     await socialAutoPostPage.verifyDateTimeSelection();
 
     await socialAutoPostPage.clickSchedulePostButton();
+    await expect(page).toHaveURL(/sp-auto-post-campaign-list\.php/);
   });
 
 
@@ -110,7 +113,7 @@ test.describe('Social Auto Post', { tag: ['@regression'] }, () => {
   // The Java test (TC_SAP_03) also skips explicit social channel selection —
   // the form uses the default/pre-selected state for video posts.
   // ─────────────────────────────────────────────────────────────────────
-  test('TC_SAP_03 - Post MP4 video 1280X720 with JPG thumbnail and cobranding enabled', async ({ socialAutoPostPage }) => {
+  test('TC_SAP_03 - Post MP4 video 1280X720 with JPG thumbnail and cobranding enabled', async ({ socialAutoPostPage, page }) => {
     test.setTimeout(120000);
 
     await socialAutoPostPage.uploadFileInMP4();
@@ -133,6 +136,7 @@ test.describe('Social Auto Post', { tag: ['@regression'] }, () => {
     await socialAutoPostPage.verifyDateTimeSelection();
 
     await socialAutoPostPage.clickSchedulePostButton();
+    await expect(page).toHaveURL(/sp-auto-post-campaign-list\.php/);
   });
 
 
@@ -148,7 +152,7 @@ test.describe('Social Auto Post', { tag: ['@regression'] }, () => {
   // The defaults are set to "Social's Auto-post" and "This's is only for testing..."
   // — both contain apostrophes and ampersands. No extra handling needed here.
   // ─────────────────────────────────────────────────────────────────────
-  test('TC_SAP_04 - Post with special characters in title and description', async ({ socialAutoPostPage }) => {
+  test('TC_SAP_04 - Post with special characters in title and description', async ({ socialAutoPostPage, page }) => {
     await socialAutoPostPage.uploadFileInJPG();
     await socialAutoPostPage.scrollDownByTwoHundred();
     await socialAutoPostPage.clickEnableCobrandingButton();
@@ -172,6 +176,7 @@ test.describe('Social Auto Post', { tag: ['@regression'] }, () => {
     await socialAutoPostPage.verifyDateTimeSelection();
 
     await socialAutoPostPage.clickSchedulePostButton();
+    await expect(page).toHaveURL(/sp-auto-post-campaign-list\.php/);
   });
 
 
@@ -191,7 +196,7 @@ test.describe('Social Auto Post', { tag: ['@regression'] }, () => {
   // Custom URLs differ per environment and should be changeable without
   // modifying test code.
   // ─────────────────────────────────────────────────────────────────────
-  test('TC_SAP_05 - Post on all social channels with Custom URL', async ({ socialAutoPostPage }) => {
+  test('TC_SAP_05 - Post on all social channels with Custom URL', async ({ socialAutoPostPage, page }) => {
     await socialAutoPostPage.uploadFileInJPG();
     await socialAutoPostPage.scrollDownByTwoHundred();
     await socialAutoPostPage.enterTitle(`${SOCIAL_TITLE}_${Date.now()}`);
@@ -217,6 +222,7 @@ test.describe('Social Auto Post', { tag: ['@regression'] }, () => {
     await socialAutoPostPage.verifyDateTimeSelection();
 
     await socialAutoPostPage.clickSchedulePostButton();
+    await expect(page).toHaveURL(/sp-auto-post-campaign-list\.php/);
   });
 
 
@@ -233,7 +239,7 @@ test.describe('Social Auto Post', { tag: ['@regression'] }, () => {
   // validate or process the form differently. Testing it explicitly confirms
   // the radio option works and the form submits without a URL being required.
   // ─────────────────────────────────────────────────────────────────────
-  test('TC_SAP_06 - Post on all social channels with None URL option', async ({ socialAutoPostPage }) => {
+  test('TC_SAP_06 - Post on all social channels with None URL option', async ({ socialAutoPostPage, page }) => {
     await socialAutoPostPage.uploadFileInJPG();
     await socialAutoPostPage.scrollDownByTwoHundred();
     await socialAutoPostPage.enterTitle(`${SOCIAL_TITLE}_${Date.now()}`);
@@ -258,6 +264,7 @@ test.describe('Social Auto Post', { tag: ['@regression'] }, () => {
     await socialAutoPostPage.verifyDateTimeSelection();
 
     await socialAutoPostPage.clickSchedulePostButton();
+    await expect(page).toHaveURL(/sp-auto-post-campaign-list\.php/);
   });
 
 
@@ -273,7 +280,7 @@ test.describe('Social Auto Post', { tag: ['@regression'] }, () => {
   // Why no URL radio click here?
   // Microsite is the default selection when the form loads — no click required.
   // ─────────────────────────────────────────────────────────────────────
-  test('TC_SAP_07 - Post on all social channels with Microsite URL (default)', async ({ socialAutoPostPage }) => {
+  test('TC_SAP_07 - Post on all social channels with Microsite URL (default)', async ({ socialAutoPostPage, page }) => {
     await socialAutoPostPage.uploadFileInJPG();
     await socialAutoPostPage.scrollDownByTwoHundred();
     await socialAutoPostPage.enterTitle(`${SOCIAL_TITLE}_${Date.now()}`);
@@ -297,6 +304,7 @@ test.describe('Social Auto Post', { tag: ['@regression'] }, () => {
     await socialAutoPostPage.verifyDateTimeSelection();
 
     await socialAutoPostPage.clickSchedulePostButton();
+    await expect(page).toHaveURL(/sp-auto-post-campaign-list\.php/);
   });
 
 
@@ -434,7 +442,7 @@ test.describe('Social Auto Post', { tag: ['@regression'] }, () => {
   ];
 
   for (const { tc, size, file } of PNG_SIZE_TESTS) {
-    test(`${tc} - Post PNG image ${size} with cobranding on Facebook`, async ({ socialAutoPostPage }) => {
+    test(`${tc} - Post PNG image ${size} with cobranding on Facebook`, async ({ socialAutoPostPage, page }) => {
       await socialAutoPostPage.uploadFilePath(file);
       await socialAutoPostPage.scrollDownByTwoHundred();
       await socialAutoPostPage.clickEnableCobrandingButton();
@@ -456,7 +464,174 @@ test.describe('Social Auto Post', { tag: ['@regression'] }, () => {
       await socialAutoPostPage.verifyDateTimeSelection();
 
       await socialAutoPostPage.clickSchedulePostButton();
+      await expect(page).toHaveURL(/sp-auto-post-campaign-list\.php/);
     });
   }
+
+
+  // ─────────────────────────────────────────────────────────────────────
+  // TC_SAP_24 — Instagram-only post with cobranding, PNG 1200X1060
+  // ─────────────────────────────────────────────────────────────────────
+  test('TC_SAP_24 - Post PNG image 1200X1060 with cobranding on Instagram only', async ({ socialAutoPostPage, page }) => {
+    await socialAutoPostPage.uploadFilePath(SocialAutoPostPage.PNG_1200X1060);
+    await socialAutoPostPage.scrollDownByTwoHundred();
+    await socialAutoPostPage.clickEnableCobrandingButton();
+    await socialAutoPostPage.enterTitle(`${SOCIAL_TITLE}_${Date.now()}`);
+    await socialAutoPostPage.enterDescription(SOCIAL_DESCRIPTION);
+
+    await socialAutoPostPage.scrollDownByFiveHundred();
+    await socialAutoPostPage.clickPartnerCategoryButton();
+    await socialAutoPostPage.selectPartnerCategory();
+    await socialAutoPostPage.closePartnerCategoryDropdown();
+
+    await socialAutoPostPage.clickInstagram();
+
+    await socialAutoPostPage.scrollDownByTwoHundred();
+    await socialAutoPostPage.openDateTimePicker();
+    const { day, monthYear } = socialAutoPostPage.getFutureScheduleDate(1);
+    await socialAutoPostPage.selectFutureDate(day, monthYear);
+    await socialAutoPostPage.selectTime('10', '30');
+    await socialAutoPostPage.verifyDateTimeSelection();
+
+    await socialAutoPostPage.clickSchedulePostButton();
+
+    // Real verification, not just "the click didn't throw" — confirms scheduling actually
+    // navigated back to the campaign listing page rather than silently failing in place.
+    await expect(page).toHaveURL(/sp-auto-post-campaign-list\.php/);
+  });
+
+
+  // ─────────────────────────────────────────────────────────────────────
+  // TC_SAP_25 — Instagram-only post WITHOUT cobranding, PNG 1200X1060
+  // ─────────────────────────────────────────────────────────────────────
+  // Same as TC_SAP_24 but deliberately skips clickEnableCobrandingButton() —
+  // proves Instagram-only posting doesn't secretly require cobranding to work.
+  test('TC_SAP_25 - Post PNG image 1200X1060 without cobranding on Instagram only', async ({ socialAutoPostPage, page }) => {
+    await socialAutoPostPage.uploadFilePath(SocialAutoPostPage.PNG_1200X1060);
+    await socialAutoPostPage.scrollDownByTwoHundred();
+    await socialAutoPostPage.enterTitle(`${SOCIAL_TITLE}_${Date.now()}`);
+    await socialAutoPostPage.enterDescription(SOCIAL_DESCRIPTION);
+
+    await socialAutoPostPage.scrollDownByFiveHundred();
+    await socialAutoPostPage.clickPartnerCategoryButton();
+    await socialAutoPostPage.selectPartnerCategory();
+    await socialAutoPostPage.closePartnerCategoryDropdown();
+
+    await socialAutoPostPage.clickInstagram();
+
+    await socialAutoPostPage.scrollDownByTwoHundred();
+    await socialAutoPostPage.openDateTimePicker();
+    const { day, monthYear } = socialAutoPostPage.getFutureScheduleDate(1);
+    await socialAutoPostPage.selectFutureDate(day, monthYear);
+    await socialAutoPostPage.selectTime('10', '30');
+    await socialAutoPostPage.verifyDateTimeSelection();
+
+    await socialAutoPostPage.clickSchedulePostButton();
+
+    await expect(page).toHaveURL(/sp-auto-post-campaign-list\.php/);
+  });
+
+
+  // ─────────────────────────────────────────────────────────────────────
+  // TC_SAP_26 — Facebook + Instagram + LinkedIn together with cobranding, PNG 1080X940
+  // ─────────────────────────────────────────────────────────────────────
+  test('TC_SAP_26 - Post PNG image 1080X940 with cobranding on Facebook, Instagram and LinkedIn', async ({ socialAutoPostPage, page }) => {
+    await socialAutoPostPage.uploadFilePath(SocialAutoPostPage.PNG_1080X940);
+    await socialAutoPostPage.scrollDownByTwoHundred();
+    await socialAutoPostPage.clickEnableCobrandingButton();
+    await socialAutoPostPage.enterTitle(`${SOCIAL_TITLE}_${Date.now()}`);
+    await socialAutoPostPage.enterDescription(SOCIAL_DESCRIPTION);
+
+    await socialAutoPostPage.scrollDownByFiveHundred();
+    await socialAutoPostPage.clickPartnerCategoryButton();
+    await socialAutoPostPage.selectPartnerCategory();
+    await socialAutoPostPage.closePartnerCategoryDropdown();
+
+    await socialAutoPostPage.clickFacebook();
+    await socialAutoPostPage.clickInstagram();
+    await socialAutoPostPage.clickLinkedIn();
+
+    await socialAutoPostPage.scrollDownByTwoHundred();
+    await socialAutoPostPage.openDateTimePicker();
+    const { day, monthYear } = socialAutoPostPage.getFutureScheduleDate(1);
+    await socialAutoPostPage.selectFutureDate(day, monthYear);
+    await socialAutoPostPage.selectTime('10', '30');
+    await socialAutoPostPage.verifyDateTimeSelection();
+
+    await socialAutoPostPage.clickSchedulePostButton();
+    await expect(page).toHaveURL(/sp-auto-post-campaign-list\.php/);
+  });
+
+
+  // ─────────────────────────────────────────────────────────────────────
+  // TC_SAP_27 — Instagram-only video post with cobranding, portrait MP4 720X1280
+  // ─────────────────────────────────────────────────────────────────────
+  // Video (Reel/post format) + a JPG thumbnail, same two-step upload pattern as TC_SAP_03.
+  // NOTE: TC_SAP_03 skips explicit channel selection because video uploads may default to
+  // a pre-selected channel (its own comment says "the form uses the default/pre-selected
+  // state"). Here we explicitly click ONLY Instagram per the spec — if that default turns
+  // out to include Facebook underneath, this would silently post to both, not just
+  // Instagram. Flagging this now since it can only be confirmed by actually running it.
+  test('TC_SAP_27 - Post portrait MP4 video 720X1280 with cobranding on Instagram only', async ({ socialAutoPostPage, page }) => {
+    test.setTimeout(120000);
+
+    await socialAutoPostPage.uploadFilePath(SocialAutoPostPage.MP4_720X1280);
+    await socialAutoPostPage.uploadThumbnailInJPG();
+    await socialAutoPostPage.scrollDownByTwoHundred();
+    await socialAutoPostPage.clickEnableCobrandingButton();
+    await socialAutoPostPage.enterTitle(`${SOCIAL_TITLE}_${Date.now()}`);
+    await socialAutoPostPage.enterDescription(SOCIAL_DESCRIPTION);
+
+    await socialAutoPostPage.scrollDownByFiveHundred();
+    await socialAutoPostPage.clickPartnerCategoryButton();
+    await socialAutoPostPage.selectPartnerCategory();
+    await socialAutoPostPage.closePartnerCategoryDropdown();
+
+    await socialAutoPostPage.clickInstagram();
+
+    await socialAutoPostPage.scrollDownByTwoHundred();
+    await socialAutoPostPage.openDateTimePicker();
+    const { day, monthYear } = socialAutoPostPage.getFutureScheduleDate(1);
+    await socialAutoPostPage.selectFutureDate(day, monthYear);
+    await socialAutoPostPage.selectTime('10', '30');
+    await socialAutoPostPage.verifyDateTimeSelection();
+
+    await socialAutoPostPage.clickSchedulePostButton();
+    await expect(page).toHaveURL(/sp-auto-post-campaign-list\.php/);
+  });
+
+
+  // ─────────────────────────────────────────────────────────────────────
+  // TC_SAP_28 — Instagram + Facebook + LinkedIn video post with cobranding, MP4 1280X720
+  // ─────────────────────────────────────────────────────────────────────
+  test('TC_SAP_28 - Post landscape MP4 video 1280X720 with cobranding on Instagram, Facebook and LinkedIn', async ({ socialAutoPostPage, page }) => {
+    test.setTimeout(120000);
+
+    await socialAutoPostPage.uploadFileInMP4();
+    await socialAutoPostPage.uploadThumbnailInJPG();
+    await socialAutoPostPage.scrollDownByTwoHundred();
+    await socialAutoPostPage.clickEnableCobrandingButton();
+    await socialAutoPostPage.enterTitle(`${SOCIAL_TITLE}_${Date.now()}`);
+    await socialAutoPostPage.enterDescription(SOCIAL_DESCRIPTION);
+
+    await socialAutoPostPage.scrollDownByFiveHundred();
+    await socialAutoPostPage.clickPartnerCategoryButton();
+    await socialAutoPostPage.selectPartnerCategory();
+    await socialAutoPostPage.closePartnerCategoryDropdown();
+
+    await socialAutoPostPage.clickFacebook();
+    await socialAutoPostPage.clickInstagram();
+    await socialAutoPostPage.clickLinkedIn();
+
+    await socialAutoPostPage.scrollDownByTwoHundred();
+    await socialAutoPostPage.openDateTimePicker();
+    const { day, monthYear } = socialAutoPostPage.getFutureScheduleDate(1);
+    await socialAutoPostPage.selectFutureDate(day, monthYear);
+    await socialAutoPostPage.selectTime('10', '30');
+    await socialAutoPostPage.verifyDateTimeSelection();
+
+    await socialAutoPostPage.clickSchedulePostButton();
+    await expect(page).toHaveURL(/sp-auto-post-campaign-list\.php/);
+  });
 
 });

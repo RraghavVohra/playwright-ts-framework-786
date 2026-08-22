@@ -34,14 +34,21 @@ export class SocialAutoPostPage {
   private descriptionField: Locator;
 
   // Partner Category
-  private partnerCategoryButton: Locator;
-  private searchBox:             Locator;
-  private categoryLabel:         Locator;
-  private facebookLabel:         Locator;
+  private partnerCategoryButton:    Locator;
+  private searchBox:                Locator;
+  // The category's TEXT label (e.g. "Raj2024") is not the clickable target — confirmed via
+  // codegen that clicking it does nothing. The actual checkbox lives inside
+  // #multiSelectDropdown and must be checked directly.
+  private categoryCheckbox:         Locator;
+  // Clicking this field label (not re-clicking partnerCategoryButton) is what actually
+  // closes the dropdown — confirmed via codegen, replacing the previous (wrong) assumption.
+  private partnerCategoryFieldLabel: Locator;
+  private facebookLabel:            Locator;
 
   // Social Media Checkboxes
-  private twitterLabel:  Locator;
-  private linkedInLabel: Locator;
+  private twitterLabel:   Locator;
+  private linkedInLabel:  Locator;
+  private instagramLabel: Locator;
 
   // URL Options
   private customUrlRadio: Locator;
@@ -83,6 +90,9 @@ export class SocialAutoPostPage {
   // MP4 and invalid size
   static readonly MP4_FILE         = 'test-data/Social Auto-posts/video 1280X720.mp4';
   static readonly INVALID_PNG_FILE = 'test-data/Social Auto-posts/Hello.png';
+  // Portrait video for Instagram Reel/post content — added directly under test-data/,
+  // not inside Social Auto-posts/ (that's just where it was dropped, not deliberate).
+  static readonly MP4_720X1280     = 'test-data/720X1280.mp4';
 
   // ─────────────────────────────────────────────────────────────────────
   // CONSTRUCTOR
@@ -124,15 +134,25 @@ export class SocialAutoPostPage {
     this.descriptionField = page.locator("//textarea[@id='description_link']");
 
     // Partner Category
-    this.partnerCategoryButton = page.getByText('Select Category');
-    this.searchBox             = page.getByRole('textbox', { name: 'Search' });
-    this.categoryLabel         = page.getByText(SOCIAL_PARTNER_NAME);
+    this.partnerCategoryButton     = page.getByText('Select Category');
+    this.searchBox                 = page.getByRole('textbox', { name: 'Search' });
+    // Scoped to the specific row containing the category name, not just "a checkbox inside
+    // #multiSelectDropdown" — the search box doesn't actually filter the visible list (all
+    // 14 categories stay rendered even with a search term typed in), so an unscoped
+    // getByRole('checkbox') resolves to all 15 checkboxes and throws a strict-mode
+    // violation. /* selects direct children only, so this matches exactly the one row
+    // whose own text contains the target name, not any of its ancestors or siblings.
+    this.categoryCheckbox = page.locator(
+      `//div[@id='multiSelectDropdown']/*[contains(normalize-space(.), '${SOCIAL_PARTNER_NAME}')]//input[@type='checkbox']`
+    );
+    this.partnerCategoryFieldLabel = page.getByText('*Partner Category');
     // facebookLabel used as a post-close confirmation — visible only when dropdown is closed
     this.facebookLabel = page.locator("//label[normalize-space()='Facebook']");
 
     // Social Media Checkboxes
-    this.twitterLabel  = page.locator("//label[normalize-space()='Twitter']");
-    this.linkedInLabel = page.locator("//label[normalize-space()='LinkedIn']");
+    this.twitterLabel   = page.locator("//label[normalize-space()='Twitter']");
+    this.linkedInLabel  = page.locator("//label[normalize-space()='LinkedIn']");
+    this.instagramLabel = page.locator("//label[normalize-space()='Instagram']");
 
     // URL Options
     // Radio buttons use evaluate() — they don't respond to Playwright's regular click()
@@ -196,7 +216,7 @@ export class SocialAutoPostPage {
 
   async uploadFile(filePath: string): Promise<void> {
     await this.fileInput.setInputFiles(filePath);
-    await expect(this.imageSizeError).not.toBeVisible();
+    await expect(this.imageSizeError).toBeHidden();
   }
 
   // Convenience wrappers — each calls uploadFile() with the right static path
@@ -249,19 +269,27 @@ export class SocialAutoPostPage {
     await this.searchBox.waitFor({ state: 'visible' });
   }
 
-  // Types the search term to filter options, waits for the label to appear, then clicks it
-  // SOCIAL_PARTNER_SEARCH and SOCIAL_PARTNER_NAME come from env so they can change per server
+  // Types the search term to filter options, then checks the matching checkbox directly.
+  // SOCIAL_PARTNER_SEARCH comes from env so it can change per server.
+  // Confirmed via a fresh codegen recording that clicking the category's TEXT (e.g.
+  // "Raj2024") does nothing at all — the actual checkbox inside #multiSelectDropdown is
+  // the real target. This replaces an earlier version that clicked the text (then an
+  // .evaluate()-click on the text) — neither worked, both looked like they "succeeded" to
+  // Playwright while silently selecting nothing, which is why a real post-schedule
+  // verification (not just "the click didn't throw") matters.
   async selectPartnerCategory(): Promise<void> {
     await this.searchBox.fill(SOCIAL_PARTNER_SEARCH);
-    await this.categoryLabel.waitFor({ state: 'visible' });
-    await this.categoryLabel.click();
+    await this.categoryCheckbox.waitFor({ state: 'visible' });
+    await this.categoryCheckbox.check();
   }
 
-  // Closes the partner category dropdown
+  // Closes the partner category dropdown by clicking the "*Partner Category" field label —
+  // confirmed via codegen. Replaces an earlier (wrong) assumption that re-clicking the
+  // "Select Category" button would toggle it closed.
   // Waits for facebookLabel to confirm the dropdown is fully closed and social checkboxes are accessible
   async closePartnerCategoryDropdown(): Promise<void> {
     if (await this.searchBox.isVisible()) {
-      await this.partnerCategoryButton.click();
+      await this.partnerCategoryFieldLabel.click();
       await this.searchBox.waitFor({ state: 'hidden' });
     }
     await this.facebookLabel.waitFor({ state: 'visible' });
@@ -283,6 +311,10 @@ export class SocialAutoPostPage {
   async clickFacebook(): Promise<void> {
     await this.facebookLabel.scrollIntoViewIfNeeded();
     await this.facebookLabel.click();
+  }
+
+  async clickInstagram(): Promise<void> {
+    await this.instagramLabel.click();
   }
 
 
