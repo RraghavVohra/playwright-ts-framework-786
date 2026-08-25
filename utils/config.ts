@@ -1,7 +1,7 @@
 // Read ENV from the .env file
 // If not set, default to 'preprod' so tests run on preprod by default
 // The 'as' tells TypeScript this value is one of only three allowed strings
-export const ENV = (process.env.ENV ?? 'preprod') as 'dev' | 'preprod' | 'prod' | 'digipulse';
+export const ENV = (process.env.ENV ?? 'digipulse') as 'dev' | 'preprod' | 'prod' | 'digipulse';
 
 // Each environment has a different base URL
 // This object maps the ENV value to the correct server address
