@@ -136,5 +136,14 @@ export default defineConfig({
       dependencies: ['setup'],
     },
 
+    // This we have added for APIs
+    {
+      name: 'api',
+      testDir: './tests/api',
+      use: {
+        baseURL: BASE_URL,
+      },
+    },
+
   ],
 });
