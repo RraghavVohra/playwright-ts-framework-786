@@ -2,6 +2,25 @@
 
 ---
 
+## Fix 39 — Social Auto-post: Partner Category selection was silently failing across the whole suite — no click ever registered, and nothing verified it
+
+**Files:** `pages/SocialAutoPostPage.ts`, `tests/e2e/social-autopost.spec.ts` (all 28 tests)
+
+**Context:** Added Instagram as a 4th social channel (alongside Facebook/Twitter/LinkedIn) and 5 new tests exercising it (`TC_SAP_24`–`28`). Two of the new tests (`TC_SAP_24`, `TC_SAP_25`) "passed" in CI, but manually checking the admin panel afterward showed **no post had actually been created** — and watching the test run live confirmed the Partner Category ("Raj2024") never actually got selected.
+
+**Why it looked like it worked:** `selectPartnerCategory()` clicked the category's visible TEXT label. Playwright reported success (the element was visible and clickable), but the click did nothing to the app's actual state — and since no test in this file verified anything after `clickSchedulePostButton()`, a step that silently failed didn't fail the test either. It just kept going and reported green.
+
+**Diagnosis, three layers deep, each requiring a fresh look at real markup instead of guessing:**
+1. First hypothesis: this form's other custom controls (`cobrandingButton`, `customUrlRadio`, `noneRadio`, the time-slot picker) all needed `.evaluate(el => el.click())` instead of a regular `.click()` because they don't reliably respond to synthetic mouse events. Applied the same fix to the category label — still didn't work, confirmed by a real re-run (the `toHaveURL` check we'd just added caught it this time instead of silently passing, which is exactly why it was added).
+2. Requested a fresh codegen recording of just that one interaction. It revealed the text label was never the real target at all — the actual `<input type="checkbox">` inside `#multiSelectDropdown` is what needed checking, and the dropdown closes via clicking the `*Partner Category` field label, not by re-clicking the "Select Category" button (both wrong assumptions in the original code).
+3. Even after targeting the checkbox, a strict-mode violation appeared: `#multiSelectDropdown`'s checkboxes resolved to 15 elements, not 1 — the search box's typed text ("raj") wasn't actually filtering the visible list at all (a page snapshot showed all 14 categories still rendered). Fixed by scoping the locator to the specific direct-child row whose own text contains the target name (`//div[@id='multiSelectDropdown']/*[contains(normalize-space(.), 'Raj2024')]//input[@type='checkbox']`), which works correctly regardless of whether the search filter itself is functioning.
+
+**Fix:** `selectPartnerCategory()` now checks the row-scoped checkbox directly; `closePartnerCategoryDropdown()` clicks the `*Partner Category` label. Separately, added `await expect(page).toHaveURL(/sp-auto-post-campaign-list\.php/)` after `clickSchedulePostButton()` across all 25 happy-path tests in the file (skipped on `TC_SAP_08`, which never submits, and `TC_SAP_09`/`10`, which are negative tests that correctly expect to stay on the page).
+
+**Interview angle:** A green test suite is not the same as a working feature — this bug survived through 23 pre-existing tests (`TC_SAP_01`–`23`) because none of them checked for anything beyond "the click actions didn't throw an exception." The real fix wasn't just correcting the locator (that took three iterations of its own), it was adding a verification step that makes this entire class of bug loud instead of silent going forward. Also a good example of resisting the urge to guess a second time after the first guess (`.evaluate()`) failed — going back to real markup via codegen, rather than trying a fourth locator variant blind, is what actually found the root cause.
+
+---
+
 ## Fix 38 — Video Asset feature build: shared components reused correctly, two naming divergences caught before they became bugs, one genuine app constraint discovered mid-test
 
 **Files:** `pages/VideoAssetPage.ts` (new), `tests/e2e/video-asset.spec.ts` (new, 11 tests), `utils/fixtures.ts`, `utils/config.ts`
