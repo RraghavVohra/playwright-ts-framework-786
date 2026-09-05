@@ -3,7 +3,9 @@ import express from 'express';
 const app = express();
 app.use(express.json());
 
+let loginCallCount = 0;
 app.post('/api/login', (req, res) => {
+  loginCallCount++;
   const { email, password } = req.body;
 
   // Real DIGIPULSE bug replicate: wrong creds pe status 200 hi aata hai, error body mein hota hai
@@ -23,6 +25,10 @@ app.post('/api/contacts', (req, res) => {
   }
 
   return res.status(201).json({ id: 101, name, email });
+});
+
+app.get('/api/login/call-count', (req, res) => {
+  res.json({ count: loginCallCount });
 });
 
 app.listen(4000, () => {
