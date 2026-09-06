@@ -13,7 +13,7 @@ test.beforeAll(() => {
 
 // TC_API_13 — Happy Path
 test('TC_API_13 - Happy Path: Content list fetched successfully', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/content-list`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/content-list`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -40,7 +40,7 @@ test('TC_API_13 - Happy Path: Content list fetched successfully', async ({ reque
 
 // TC_API_14 — total_data matches array length
 test('TC_API_14 - Verify total_data matches array length', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/content-list`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/content-list`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -64,7 +64,7 @@ test('TC_API_14 - Verify total_data matches array length', async ({ request }) =
 
 // TC_API_15 — Verify required fields in each content type
 test('TC_API_15 - Verify required fields in each content type', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/content-list`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/content-list`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -93,7 +93,7 @@ test('TC_API_15 - Verify required fields in each content type', async ({ request
 
 // TC_API_16 — No Auth Token
 test('TC_API_16 - No Auth Token: Unauthorized', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/content-list`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/content-list`, {
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json'

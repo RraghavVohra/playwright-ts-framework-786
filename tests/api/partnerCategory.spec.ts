@@ -12,7 +12,7 @@ test.beforeAll(() => {
 
 // TC_API_29 — Happy Path
 test('TC_API_29 - Happy Path: Partner categories fetched successfully', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/partner-category`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/partner-category`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -43,7 +43,7 @@ test('TC_API_29 - Happy Path: Partner categories fetched successfully', async ({
 
 // TC_API_30 — total_data matches data length
 test('TC_API_30 - Verify total_data matches data length', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/partner-category`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/partner-category`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -70,7 +70,7 @@ test('TC_API_30 - Verify total_data matches data length', async ({ request }) =>
 
 // TC_API_31 — Verify required fields
 test('TC_API_31 - Verify required fields in each category', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/partner-category`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/partner-category`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -100,7 +100,7 @@ test('TC_API_31 - Verify required fields in each category', async ({ request }) 
 
 // TC_API_32 — No Auth Token
 test('TC_API_32 - No Auth Token: Unauthorized', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/partner-category`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/partner-category`, {
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json'

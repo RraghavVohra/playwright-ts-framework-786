@@ -13,7 +13,7 @@ test.beforeAll(async ({ request }) => {
   cookies = authData.cookies;
 
   // Step 2 — partnerCategory API se categoryId fetch karo
-  const catResponse = await request.post(`https://app.digipulsesp.in/framework/api/partner-category`, {
+  const catResponse = await request.post(`${process.env.BASE_URL}/framework/api/partner-category`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -38,7 +38,7 @@ test.beforeAll(async ({ request }) => {
 test('TC_API_33 - Happy Path: Partner added successfully', async ({ request }) => {
   const timestamp = Date.now();
 
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/partners`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/partners`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -94,7 +94,7 @@ test('TC_API_33 - Happy Path: Partner added successfully', async ({ request }) =
 
 // TC_API_34 — Duplicate UID
 test('TC_API_34 - Duplicate UID: Already exists', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/partners`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/partners`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -144,7 +144,7 @@ test('TC_API_34 - Duplicate UID: Already exists', async ({ request }) => {
 
 // TC_API_35 — Duplicate Phone
 test('TC_API_35 - Duplicate Phone: Already exists', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/partners`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/partners`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -194,7 +194,7 @@ test('TC_API_35 - Duplicate Phone: Already exists', async ({ request }) => {
 
 // TC_API_36 — No Auth Token
 test('TC_API_36 - No Auth Token: Unauthorized', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/partners`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/partners`, {
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json'

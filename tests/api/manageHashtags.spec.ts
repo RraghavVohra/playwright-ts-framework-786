@@ -13,7 +13,7 @@ test.beforeAll(() => {
 
 // TC_API_21 — Happy Path: Hashtag created successfully
 test('TC_API_21 - Happy Path: Hashtag created successfully', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/manageHashtags`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/manageHashtags`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -37,7 +37,7 @@ test('TC_API_21 - Happy Path: Hashtag created successfully', async ({ request })
 
 // TC_API_22 — Duplicate Tag
 test('TC_API_22 - Duplicate Tag: Same tag created twice', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/manageHashtags`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/manageHashtags`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -61,7 +61,7 @@ test('TC_API_22 - Duplicate Tag: Same tag created twice', async ({ request }) =>
 
 // TC_API_23 — Missing tag_name
 test('TC_API_23 - Missing tag_name: Validation error', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/manageHashtags`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/manageHashtags`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -85,7 +85,7 @@ test('TC_API_23 - Missing tag_name: Validation error', async ({ request }) => {
 
 // TC_API_24 — No Auth Token
 test('TC_API_24 - No Auth Token: Unauthorized', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/manageHashtags`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/manageHashtags`, {
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json'

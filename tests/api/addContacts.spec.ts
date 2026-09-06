@@ -13,7 +13,7 @@ test.beforeAll(() => {
 
 
 test('TC_API_01 - Happy Path: Valid contact created', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/addContacts`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/addContacts`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -42,7 +42,7 @@ test('TC_API_01 - Happy Path: Valid contact created', async ({ request }) => {
 });
 
 test('TC_API_02 - Duplicate Email: Contact updated silently', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/addContacts`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/addContacts`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -68,7 +68,7 @@ test('TC_API_02 - Duplicate Email: Contact updated silently', async ({ request }
 });
 
 test('TC_API_03 - Missing Email: Validation error', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/addContacts`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/addContacts`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -91,7 +91,7 @@ test('TC_API_03 - Missing Email: Validation error', async ({ request }) => {
 });
 
 test('TC_API_04 - No Auth Token: Unauthorized', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/addContacts`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/addContacts`, {
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json'

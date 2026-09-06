@@ -109,3 +109,40 @@ jobs:
         name: playwright-report-${{ matrix.shardIndex }}
         path: azure-report/
         retention-days: 30
+
+  api-tests:
+    name: API Tests
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+    # Step 1 — Pull code
+    - uses: actions/checkout@v4
+
+    # Step 2 — Install Node.js
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 24
+
+    # Step 3 — Install dependencies
+    - name: Install dependencies
+      run: npm ci
+
+    # NOTE: No "npx playwright install" step here — the 'api' project in
+    # playwright.config.ts has no browser/device config, so no browser
+    # binaries are needed. Saves CI time compared to the UI job.
+
+    # Step 4 — Run API tests against digipulse
+    - name: Run API tests
+      env:
+        BASE_URL: https://app.digipulsesp.in
+        TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
+        TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+      run: npx playwright test --project=api
+
+    # Step 5 — Upload report even if tests fail
+    - uses: actions/upload-artifact@v4
+      if: ${{ !cancelled() }}
+      with:
+        name: api-test-report
+        path: playwright-report/
+        retention-days: 30

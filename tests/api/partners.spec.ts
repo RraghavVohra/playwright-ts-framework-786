@@ -12,7 +12,7 @@ test.beforeAll(() => {
 
 // TC_API_05 — Happy Path: Valid list fetched
 test('TC_API_05 - Happy Path: Partners list fetched successfully', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/partners`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/partners`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -40,7 +40,7 @@ test('TC_API_05 - Happy Path: Partners list fetched successfully', async ({ requ
 
 // TC_API_06 — Search filter
 test('TC_API_06 - Search: Filter contacts by name', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/partners`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/partners`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -65,7 +65,7 @@ test('TC_API_06 - Search: Filter contacts by name', async ({ request }) => {
 
 // TC_API_07 — Pagination
 test('TC_API_07 - Pagination: Fetch next page', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/partners`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/partners`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -90,7 +90,7 @@ test('TC_API_07 - Pagination: Fetch next page', async ({ request }) => {
 
 // TC_API_08 — No Auth Token
 test('TC_API_08 - No Auth Token: Unauthorized', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/partners`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/partners`, {
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json'

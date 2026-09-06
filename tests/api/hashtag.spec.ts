@@ -13,7 +13,7 @@ test.beforeAll(() => {
 
 // TC_API_17 — Happy Path
 test('TC_API_17 - Happy Path: Hashtag list fetched successfully', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/hashtag`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/hashtag`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -43,7 +43,7 @@ test('TC_API_17 - Happy Path: Hashtag list fetched successfully', async ({ reque
 
 // TC_API_18 — total_data matches taglist length
 test('TC_API_18 - Verify total_data matches taglist length', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/hashtag`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/hashtag`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -70,7 +70,7 @@ test('TC_API_18 - Verify total_data matches taglist length', async ({ request })
 
 // TC_API_19 — Verify required fields in each hashtag
 test('TC_API_19 - Verify required fields in each hashtag', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/hashtag`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/hashtag`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -98,7 +98,7 @@ test('TC_API_19 - Verify required fields in each hashtag', async ({ request }) =
 
 // TC_API_20 — No Auth Token
 test('TC_API_20 - No Auth Token: Unauthorized', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/hashtag`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/hashtag`, {
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json'

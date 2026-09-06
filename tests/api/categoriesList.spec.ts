@@ -12,7 +12,7 @@ test.beforeAll(() => {
 
 // TC_API_09 — Happy Path: Categories list fetched
 test('TC_API_09 - Happy Path: Categories list fetched successfully', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/Categories-list`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/Categories-list`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -39,7 +39,7 @@ test('TC_API_09 - Happy Path: Categories list fetched successfully', async ({ re
 
 // TC_API_10 — total_data matches actual array length
 test('TC_API_10 - Verify total_data matches array length', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/Categories-list`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/Categories-list`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -65,7 +65,7 @@ test('TC_API_10 - Verify total_data matches array length', async ({ request }) =
 
 // TC_API_11 — Verify required fields exist in each category
 test('TC_API_11 - Verify required fields in each category', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/Categories-list`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/Categories-list`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -94,7 +94,7 @@ test('TC_API_11 - Verify required fields in each category', async ({ request }) 
 
 // TC_API_12 — No Auth Token
 test('TC_API_12 - No Auth Token: Unauthorized', async ({ request }) => {
-  const response = await request.post(`https://app.digipulsesp.in/framework/api/Categories-list`, {
+  const response = await request.post(`${process.env.BASE_URL}/framework/api/Categories-list`, {
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json'

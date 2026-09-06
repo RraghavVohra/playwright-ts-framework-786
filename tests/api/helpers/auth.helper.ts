@@ -21,3 +21,4 @@ export function getAuthData(): { token: string, cookies: string } {
     cookies: authState.cookies
   };
 }
+
