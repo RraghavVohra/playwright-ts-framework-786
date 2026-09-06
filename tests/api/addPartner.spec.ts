@@ -5,13 +5,14 @@ let token: string;
 let cookies: string;
 let categoryId: number;
 
+// Single beforeAll — token + cookies + categoryId sab yahan fetch karo
 test.beforeAll(async ({ request }) => {
-  const authData = await getAuthData(request);
+  // Step 1 — auth-state.json se token aur cookies lo
+  const authData = getAuthData();
   token = authData.token;
   cookies = authData.cookies;
-  console.log('✅ Token received:', token ? 'Yes' : 'No');
 
-  // Dynamically fetch category id from partnerCategory API
+  // Step 2 — partnerCategory API se categoryId fetch karo
   const catResponse = await request.post(`https://app.digipulsesp.in/framework/api/partner-category`, {
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -33,7 +34,7 @@ test.beforeAll(async ({ request }) => {
   console.log('✅ Category ID fetched:', categoryId);
 });
 
-// TC_API_33 — Happy Path: Partner added successfully
+// TC_API_33 — Happy Path
 test('TC_API_33 - Happy Path: Partner added successfully', async ({ request }) => {
   const timestamp = Date.now();
 
@@ -76,20 +77,19 @@ test('TC_API_33 - Happy Path: Partner added successfully', async ({ request }) =
     }
   });
 
-const rawBody = await response.text();
-// subdomain_details prefix remove karo
-const cleanBody = rawBody.replace('subdomain_details', '').trim();
-const body = JSON.parse(cleanBody);
+  const rawBody = await response.text();
+  const cleanBody = rawBody.replace('subdomain_details', '').trim();
+  const body = JSON.parse(cleanBody);
 
-console.log('TC_API_33 Response:', body);
-console.log('TC_API_33 Partner ID:', body.partner_id);
-console.log('TC_API_33 Category ID used:', categoryId);
+  console.log('TC_API_33 Response:', body);
+  console.log('TC_API_33 Partner ID:', body.partner_id);
+  console.log('TC_API_33 Category ID used:', categoryId);
 
-expect(response.status()).toBe(200);
-expect(body.statusCode).toBe("200");
-expect(body.status).toBe("success");
-expect(body.message).toBe("Partner Details Added Successfully!!");
-expect(body.partner_id).toBeTruthy();
+  expect(response.status()).toBe(200);
+  expect(body.statusCode).toBe("200");
+  expect(body.status).toBe("success");
+  expect(body.message).toBe("Partner Details Added Successfully!!");
+  expect(body.partner_id).toBeTruthy();
 });
 
 // TC_API_34 — Duplicate UID
@@ -103,7 +103,7 @@ test('TC_API_34 - Duplicate UID: Already exists', async ({ request }) => {
     },
     data: {
       action: "add",
-      UID: "RR-786", // already exists
+      UID: "RR-786",
       EUIN: "",
       first_name: "Rolls",
       last_name: "Royce",
@@ -159,7 +159,7 @@ test('TC_API_35 - Duplicate Phone: Already exists', async ({ request }) => {
       last_name: "Royce",
       category: [categoryId],
       email: `unique_${Date.now()}@test.com`,
-      phone: ["9493949311"], // already exists
+      phone: ["9493949311"],
       company: "Bizight Solutions Pvt. Ltd.",
       company_website: "",
       designation: "Senior Test Architect",
@@ -213,6 +213,5 @@ test('TC_API_36 - No Auth Token: Unauthorized', async ({ request }) => {
   const body = await response.json();
   console.log('TC_API_36 Status:', response.status());
   console.log('TC_API_36 Response:', body.message);
-  // Bug: 404 instead of 401
   expect(response.status()).toBe(404);
 });

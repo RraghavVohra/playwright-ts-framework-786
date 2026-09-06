@@ -4,11 +4,10 @@ import { getAuthData } from './helpers/auth.helper';
 let token: string;
 let cookies: string;
 
-test.beforeAll(async ({ request }) => {
-  const authData = await getAuthData(request);
+test.beforeAll(() => {
+  const authData = getAuthData();
   token = authData.token;
   cookies = authData.cookies;
-  console.log('✅ Token received:', token ? 'Yes' : 'No');
 });
 
 // TC_API_09 — Happy Path: Categories list fetched

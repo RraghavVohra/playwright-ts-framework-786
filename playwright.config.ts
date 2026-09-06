@@ -140,9 +140,11 @@ export default defineConfig({
     {
       name: 'api',
       testDir: './tests/api',
+      testIgnore: '**/learning/**',
       use: {
         baseURL: BASE_URL,
       },
+      globalSetup: './utils/api-global-setup.ts',
     },
 
   ],
