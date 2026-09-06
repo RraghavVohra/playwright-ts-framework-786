@@ -83,6 +83,10 @@ jobs:
     # --workers = how many tests run in parallel, chosen from the dropdown above
     # vars.PLAYWRIGHT_SERVICE_URL = URL stored in GitHub Variables
     - name: Run Playwright tests
+    - nametwo: Debug secret length (temporary)
+  run: |
+     echo "USER_EMAIL length: ${#USER_EMAIL}"
+     echo "USER_PASSWORD length: ${#USER_PASSWORD}"
       env:
          PLAYWRIGHT_SERVICE_URL : ${{ vars.PLAYWRIGHT_SERVICE_URL }}
          ENV: ${{ inputs.environment }}
