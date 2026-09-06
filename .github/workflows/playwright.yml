@@ -77,16 +77,24 @@ jobs:
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    # TEMPORARY — Debug step to verify secrets are actually populated.
+    # Prints character COUNT only, never the real value (GitHub also auto-masks
+    # secret values in logs regardless). Remove this step once login is confirmed working.
+    - name: Debug secret length (temporary)
+      run: |
+        echo "USER_EMAIL length: ${#USER_EMAIL}"
+        echo "USER_PASSWORD length: ${#USER_PASSWORD}"
+      env:
+        USER_EMAIL: ${{ secrets.USER_EMAIL }}
+        USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
+
    # Step 5 — Run Playwright tests on Azure cloud
     # PLAYWRIGHT_SERVICE_URL tells Playwright to use Azure cloud browsers
     # --config = use Azure service config instead of local config
     # --workers = how many tests run in parallel, chosen from the dropdown above
     # vars.PLAYWRIGHT_SERVICE_URL = URL stored in GitHub Variables
     - name: Run Playwright tests
-    - nametwo: Debug secret length (temporary)
-  run: |
-     echo "USER_EMAIL length: ${#USER_EMAIL}"
-     echo "USER_PASSWORD length: ${#USER_PASSWORD}"
       env:
          PLAYWRIGHT_SERVICE_URL : ${{ vars.PLAYWRIGHT_SERVICE_URL }}
          ENV: ${{ inputs.environment }}
@@ -150,3 +158,5 @@ jobs:
         name: api-test-report
         path: playwright-report/
         retention-days: 30
+
+        
