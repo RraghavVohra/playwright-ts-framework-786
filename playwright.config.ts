@@ -144,7 +144,7 @@ export default defineConfig({
       use: {
         baseURL: BASE_URL,
       },
-      globalSetup: './utils/api-global-setup.ts',
+      // globalSetup: './utils/api-global-setup.ts',
     },
 
   ],
