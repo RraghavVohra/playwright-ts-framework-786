@@ -3,6 +3,7 @@ import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
 import { getAuthData } from './helpers/auth.helper';
+import { SaveContentSchema } from './schemas/saveContent.schema';
 
 dotenv.config();
 
@@ -54,4 +55,16 @@ test('TC_01 - saveContent Happy Path (real captured images)', async ({ request }
   expect(body.statusCode).toBe('200');
   expect(Array.isArray(body.inserted_ids)).toBe(true);
   expect(body.inserted_ids.length).toBeGreaterThan(0);
+
+  // ===== SCHEMA VALIDATION (Zod) =====
+  // This ONE line replaces the need to manually assert every field's type.
+  // If the backend changes anything about this response's shape — a missing
+  // field, a retyped field, an extra unexpected field — this fails with a
+  // detailed error showing exactly what mismatched.
+  const schemaResult = SaveContentSchema.safeParse(body);
+  console.log('Schema valid?', schemaResult.success);
+  if (!schemaResult.success) {
+    console.log('Schema errors:', schemaResult.error.format());
+  }
+  expect(schemaResult.success).toBe(true);
 });
