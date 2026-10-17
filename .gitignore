@@ -25,3 +25,6 @@ azure-report/
 
 # NEW — Windows folder-customization junk file, gets auto-created, not source code
 desktop.ini
+
+# API session written by api-global-setup (token + cookies)
+auth-state.json
