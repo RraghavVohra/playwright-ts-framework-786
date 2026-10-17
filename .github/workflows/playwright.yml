@@ -139,6 +139,10 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
+    # Fail the API job on any TypeScript error. Runs once (API job), not per-shard.
+    - name: Typecheck
+      run: npm run typecheck
+
     # NOTE: No "npx playwright install" step here — the 'api' project in
     # playwright.config.ts has no browser/device config, so no browser
     # binaries are needed. Saves CI time compared to the UI job.
