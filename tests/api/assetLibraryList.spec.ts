@@ -50,7 +50,25 @@ function headers() {
 // Base payload — every field null except pagination, matching the confirmed
 // working request. Individual tests clone this and override just the field
 // they're testing.
-function basePayload() {
+// Shape of the request body. Every filter starts as null and individual tests
+// override the one they are testing - typing them as `string | null` (instead of
+// letting TypeScript infer the literal type `null`) is what allows that.
+interface AssetLibraryPayload {
+  action: string;
+  global_search: string | null;
+  sub_category_filter: string | null;
+  quick_filter_value: string | null;
+  category_filter: string | null;
+  status_filter: string | null;
+  sort_value: string | null;
+  sort_order: string | null;
+  folder_id: string | null;
+  smart_folder: string | null;
+  startlimit: number;
+  endlimit: number;
+}
+
+function basePayload(): AssetLibraryPayload {
   return {
     action: 'contentList',
     global_search: null,
@@ -175,3 +193,4 @@ test('TC_06 - Schema/type check on listing_data fields', async ({ request }) => 
   expect(typeof firstItem.status).toBe('string');
   expect(Array.isArray(firstItem.solution_types)).toBe(true);
 });
+
