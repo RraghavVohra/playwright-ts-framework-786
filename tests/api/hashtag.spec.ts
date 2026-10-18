@@ -158,6 +158,8 @@ test('TC_API_26 - Response matches the full hashtag contract (Zod)', async ({ re
   });
 
   const body = await response.json();
+ 
+
   const schemaResult = HashtagResponseSchema.safeParse(body);
   if (!schemaResult.success) {
     console.log('TC_API_26 Schema errors:', schemaResult.error.format());
@@ -166,6 +168,7 @@ test('TC_API_26 - Response matches the full hashtag contract (Zod)', async ({ re
   expect(response.status()).toBe(200);
   expect(schemaResult.success).toBe(true);
 });
+
 
 // TC_API_27 — Idempotency check. hashtag is a read-style action (it lists data,
 // it doesn't mutate anything), so calling it twice with the IDENTICAL payload
