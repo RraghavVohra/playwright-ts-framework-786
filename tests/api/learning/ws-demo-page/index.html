@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <div id="price">waiting...</div>
+    <script>
+      const socket = new WebSocket('ws://localhost:8080/ws');
+      socket.onopen = () => {
+        console.log('PAGE: socket OPENED, sending ready');
+        socket.send('ready');
+      };
+      socket.onmessage = (event) => {
+        console.log('PAGE: message received:', event.data);
+        const data = JSON.parse(event.data);
+        document.getElementById('price').textContent = data.value;
+      };
+      socket.onerror = () => console.log('PAGE: socket ERROR occurred');
+      socket.onclose = (ev) => console.log('PAGE: socket CLOSED, code =', ev.code);
+    </script>
+  </body>
+</html>

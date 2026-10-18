@@ -31,6 +31,24 @@ app.get('/api/login/call-count', (req, res) => {
   res.json({ count: loginCallCount });
 });
 
+
+// Item 5 — same endpoint, different response based on the REQUEST BODY, not the URL.
+// Item 6 — delay support, via an optional field in the same request body.
+app.post('/api/payment', async (req, res) => {
+  const { cardNumber, simulateDelayMs } = req.body;
+
+  if (simulateDelayMs) {
+    await new Promise(resolve => setTimeout(resolve, simulateDelayMs));
+  }
+
+  if (cardNumber === '4000000000000002') {
+    // test card for a decline — same URL, same method, different outcome
+    return res.status(402).json({ status: 'declined', reason: 'card_declined' });
+  }
+
+  return res.status(200).json({ status: 'success', transactionId: 'txn_abc123' });
+});
+
 app.listen(4000, () => {
   console.log('Mock server running on http://localhost:4000');
 });
