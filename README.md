@@ -6,18 +6,19 @@ A scalable end-to-end test automation framework built with **Playwright + TypeSc
 
 ## 🚀 Overview
 
-This framework automates end-to-end regression testing for a multi-module web application, covering **100+ test cases** across 8 functional modules — Banners, Brochures, Document Library, Push Notifications, Social Auto-Post, Social Post Assets, Testimonials, and Video Assets.
+This framework automates both UI and API regression testing for a multi-module web application: **97 end-to-end UI tests** across 8 functional modules (Banners, Brochures, Document Library, Push Notifications, Social Auto-Post, Social Post Assets, Testimonials, Video Assets), plus **40 API tests** validating the same platform's backend directly over HTTP — 137 tests total.
 
 It's built to run anywhere: a developer's machine, Jenkins (on-prem), or GitHub Actions with cloud browsers via **Azure Playwright Testing** — with test execution parallelized across multiple CI jobs via **sharding**.
 
 ---
 
-## 🛠️ Tech Stackk
+## 🛠️ Tech Stack
 
 | Category | Tool |
 |---|---|
 | Test Framework | [Playwright Test](https://playwright.dev/) |
 | Language | TypeScript |
+| Schema Validation | [Zod](https://zod.dev/) — runtime contract checks on API responses |
 | Cloud Execution | Azure Playwright Testing |
 | CI/CD | GitHub Actions, Jenkins |
 | Reporting | Allure, Playwright HTML Reporter |
@@ -30,14 +31,22 @@ It's built to run anywhere: a developer's machine, Jenkins (on-prem), or GitHub 
 ```
 ├── .github/workflows/       # GitHub Actions CI/CD pipeline (sharded, Azure cloud execution)
 ├── pages/                   # Page Object Model — one class per application module
-├── tests/e2e/                # Test specs, one file per module
+├── tests/e2e/                # UI test specs, one file per module (97 tests)
+├── tests/api/                 # API test specs — direct HTTP, no browser (40 tests)
+│   ├── schemas/               # Zod schemas — runtime contracts for API responses
+│   ├── helpers/                # auth.helper.ts — shared API login logic
+│   ├── fixtures/                # Captured real request payloads, reused across tests
+│   └── learning/                 # Personal practice: stubbing/mocking patterns.
+│                                 # Not part of the CI suite — excluded via testIgnore.
+├── mock-server/               # Local mock server, used only by tests/api/learning/
 ├── utils/
 │   ├── config.ts             # Environment URLs, credentials, test data constants
+│   ├── api-global-setup.ts   # Logs in via HTTP once before the API suite runs
 │   ├── fixtures.ts           # Custom Playwright fixtures — injects Page Objects into tests
 │   ├── global-setup.ts       # Runs once before the suite (cleans stale Allure results)
 │   └── testData.ts           # Shared/static test data
 ├── test-data/                # Upload assets used by tests (images, videos, PDFs, CSVs)
-├── auth.setup.ts             # Logs in once, saves session to auth.json (reused by all tests)
+├── auth.setup.ts             # Logs in once, saves session to auth.json (reused by all UI tests)
 ├── playwright.config.ts      # Local / Jenkins execution config
 ├── playwright.service.config.ts  # Azure Playwright Testing (cloud) execution config
 └── tsconfig.json
@@ -109,6 +118,19 @@ Jenkins is also supported as an alternate CI runner, with Allure reporting and e
 - **Single sign-on session reuse** — a dedicated `setup` project logs in once via `auth.setup.ts` and saves the session to `auth.json`; every other test starts already authenticated.
 - **Multi-environment support** — a single `ENV` variable switches the entire suite between dev, preprod, prod, and digipulse without touching test code.
 - **Cloud-native parallel execution** — browsers run on Azure's infrastructure, decoupling test throughput from the CI runner's local compute.
+
+---
+## 🔌 API Testing & Contract Validation
+
+40 tests exercise the platform's API directly over HTTP, authenticated once via `utils/api-global-setup.ts` rather than through the browser — faster, and independent of any UI changes.
+
+Response shapes are checked two ways:
+- **TypeScript interfaces** (e.g. `ListingItem`, `AssetLibraryPayload`) — compile-time only. They describe what a response *should* look like, but never inspect the real data.
+- **Zod schemas** (`tests/api/schemas/`) — runtime contracts. `SaveContentSchema.safeParse(body)` checks the *actual* response the moment it arrives, and fails with the exact field that broke if the backend's shape ever changes.
+
+Currently Zod validates one endpoint (`saveContent`) as the proven pattern; expanding it to the remaining API specs is a deliberate next step, not an oversight.
+
+`tests/api/learning/` is a separate, personal practice area for stubbing and mocking patterns using the local `mock-server/` — excluded from the CI suite via `testIgnore`, kept to build fluency before applying those patterns to real tests.
 
 ---
 ## 🧠 Engineering Decisions — What & Why
