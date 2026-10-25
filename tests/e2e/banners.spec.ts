@@ -117,57 +117,26 @@ test('TC_BNR_03 - creates a Banner using a .jpeg image and confirms it appears i
   await expect(bannersPage.getAssetByTitle(bannerName)).toBeVisible();
 });
 
-test('TC_BNR_04 - creates a Banner using a .webp image and confirms it appears in the Asset Library', async ({ bannersPage, page }) => {
-  const bannerName = `${BANNER_NAME}_${Date.now()}`;
+// TC_BNR_04–06 — Formats other than jpg/jpeg/png are rejected on the asset upload step.
+// HISTORY: the upload step used to have no format validation (these tests were written as
+// "known gap" characterization tests, and TC_BNR_04 created a banner from a .webp). The app now
+// shows a red toast "Only jpg, jpeg and png images are allowed." and keeps Next disabled,
+// so the assertions were flipped from "advances" to "is rejected" as planned.
+const REJECTED_FORMATS = [
+  { id: 'TC_BNR_04', ext: '.webp', file: BannersPage.WEBP_FILE },
+  { id: 'TC_BNR_05', ext: '.pdf',  file: BannersPage.PDF_FILE  },
+  { id: 'TC_BNR_06', ext: '.csv',  file: BannersPage.CSV_FILE  },
+];
 
-  await bannersPage.navigateToCreateBanner();
-  await expect(page).toHaveURL(/home\/new-asset\/upload-asset/);
+for (const { id, ext, file } of REJECTED_FORMATS) {
+  test(`${id} - ${ext} is rejected on the asset upload (only jpg, jpeg and png are allowed)`, async ({ bannersPage, page }) => {
+    await bannersPage.navigateToCreateBanner();
+    await expect(page).toHaveURL(/home\/new-asset\/upload-asset/);
 
-  await bannersPage.uploadAssetImage(BannersPage.WEBP_FILE);
-  await bannersPage.clickNext();
+    await bannersPage.uploadAssetImage(file);
 
-  await expect(page).toHaveURL(/home\/new-asset\/global-asset-details/);
-  await bannersPage.enterName(bannerName);
-  await bannersPage.enterDescription('This is only for testing purpose.');
-  await bannersPage.clickSaveAndProceed();
+    await bannersPage.assertUploadRejected();
+    await expect(page).toHaveURL(/home\/new-asset\/upload-asset/);
+  });
+}
 
-  await expect(page).toHaveURL(/home\/new-asset\/base-asset-details/);
-  await bannersPage.uploadThumbnail(BannersPage.WEBP_FILE);
-  // No drag needed — the crop tool's default selection already matches the required
-  // exact pixel dimensions; dragging it risks throwing that off (see Fixes.md Fix 27).
-  await bannersPage.clickCropAndSubmit();
-  await bannersPage.clickSaveAndProceed();
-
-  await expect(page).toHaveURL(/home\/new-asset\/publish-asset/);
-  await bannersPage.selectPartner(SOCIAL_PARTNER_SEARCH, SOCIAL_PARTNER_NAME);
-  await bannersPage.clickPublish();
-
-  await expect(page).toHaveURL(/home\/AssetLibrary/);
-  await bannersPage.filterByBanners();
-  await bannersPage.searchLibrary(bannerName);
-
-  await expect(bannersPage.getAssetByTitle(bannerName)).toBeVisible();
-});
-
-// TC_BNR_05–06 — Non-image formats on the asset upload step.
-// KNOWN GAP: the asset upload step has no format validation yet — accept="image/*" on the
-// <input> is only a client-side hint for the OS file picker, it doesn't block a
-// programmatic upload, and there's no server-side check either. These currently SUCCEED,
-// which is not the desired behavior. This is a characterization test — it documents what
-// actually happens today, not what should happen. Once real validation is added, these
-// assertions should flip to expect a rejection instead of a successful advance.
-test('TC_BNR_05 - .pdf is currently NOT blocked from the asset upload (known validation gap)', async ({ bannersPage, page }) => {
-  await bannersPage.navigateToCreateBanner();
-  await bannersPage.uploadAssetImage(BannersPage.PDF_FILE);
-  await bannersPage.clickNext();
-
-  await expect(page).toHaveURL(/home\/new-asset\/global-asset-details/);
-});
-
-test('TC_BNR_06 - .csv is currently NOT blocked from the asset upload (known validation gap)', async ({ bannersPage, page }) => {
-  await bannersPage.navigateToCreateBanner();
-  await bannersPage.uploadAssetImage(BannersPage.CSV_FILE);
-  await bannersPage.clickNext();
-
-  await expect(page).toHaveURL(/home\/new-asset\/global-asset-details/);
-});
