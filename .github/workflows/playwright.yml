@@ -34,42 +34,7 @@ on:
 
 # WHAT to run
 jobs:
-  # One-shot UI login that runs ONCE and shares its auth.json with all 4 shards.
-  # Before: each shard called auth.setup.ts separately -> 4 UI logins per run, which combined with
-  # the API login hit SalesPanda's "max 5 login attempts / 30 min" account limit, causing one shard
-  # to fall into the limit, auth.setup.ts to fail there, and ~20 tests to skip.
-  # Now: 1 UI login here, uploaded as the "auth-json" artifact, downloaded by every shard, which
-  # then runs with --no-deps (skipping their own setup project). Total logins per run: 2 (1 UI + 1 API).
-  login:
-    name: UI login (shared auth.json)
-    timeout-minutes: 10
-    runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: 24
-    - name: Install dependencies
-      run: npm ci
-    - name: Install Playwright browsers
-      run: npx playwright install --with-deps chromium
-    - name: Run auth.setup.ts (writes auth.json)
-      env:
-        ENV: ${{ inputs.environment }}
-        USER_EMAIL: ${{ secrets.USER_EMAIL }}
-        USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
-      run: npx playwright test --project=setup
-    - name: Upload auth.json for shards
-      uses: actions/upload-artifact@v4
-      with:
-        name: auth-json
-        path: auth.json
-        retention-days: 1
-        if-no-files-found: error
-
   test:
-    needs: [login]
     # Maximum time this job can run before GitHub kills it
     timeout-minutes: 60
     # Which machine to run on — GitHub's Ubuntu Linux server
@@ -104,12 +69,6 @@ jobs:
     # npm ci = clean install — faster and more reliable than npm install in CI
     - name: Install dependencies
       run: npm ci
-
-    # Reuses the single auth.json produced by the "login" job.
-    - name: Download shared auth.json
-      uses: actions/download-artifact@v4
-      with:
-        name: auth-json
 
     # Step 4 — Login to Microsoft Azure
     # Uses AZURE_CREDENTIALS secret stored in GitHub → Settings → Secrets
@@ -149,7 +108,7 @@ jobs:
     # --project=chromium = run ONLY the UI project (its 'setup' dependency runs automatically).
     # Without it the 'api' project's specs also ran in these shards, where TEST_EMAIL/TEST_PASSWORD
     # are not set -> no auth-state.json -> 11 API failures + 32 skipped. API tests run in the api-tests job.
-      run: npx playwright test --config=playwright.service.config.ts --project=chromium --no-deps --workers=${{ inputs.workers }} --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+      run: npx playwright test --config=playwright.service.config.ts --project=chromium --workers=${{ inputs.workers }} --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
     # Step 6 — Upload test report as artifact to GitHub
     # The if statement means-> upload report even if tests failed
     # retention-days: 30 = report stays available for 30 days
@@ -244,4 +203,3 @@ jobs:
         name: api-test-report
         path: playwright-report/
         retention-days: 30
-
