@@ -85,9 +85,12 @@ test('TC_API_03 - Missing Email: Validation error', async ({ request }) => {
 
   const body = await response.json();
   console.log('TC_API_03 Response:', body);
+  // Bug note: Missing email causes a server crash (500) instead of a validation error (4xx).
+  // We pin the 500 itself — that is the actual bug. We do NOT assert on body.exception: that field
+  // only appears when the server runs with debug output on, and CI now gets the safe generic
+  // response ({ message: 'Server Error' }) without it.
   expect(response.status()).toBe(500);
-  expect(body.exception).toBe("ErrorException");
-// Bug note: Missing email causes server crash instead of validation error
+  expect(body.message).toBeDefined();
 });
 
 test('TC_API_04 - No Auth Token: Unauthorized', async ({ request }) => {
@@ -107,3 +110,4 @@ test('TC_API_04 - No Auth Token: Unauthorized', async ({ request }) => {
   console.log('TC_API_04 Response:', body);
   expect(response.status()).toBe(404);
 });
+
