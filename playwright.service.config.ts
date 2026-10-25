@@ -23,9 +23,13 @@ export default defineConfig(
     */
     reporter: [
      ["html", { open: "never", outputFolder: "azure-report" }],
+     // blob = raw per-shard result data. A finished HTML report can't be merged, but blob
+     // can: the merge-reports job in the workflow combines all 4 shards' blobs into ONE report.
+     ["blob", { outputDir: "blob-report" }],
      ["@azure/playwright/reporter", {
     runName: `Run - ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} - Workers: ${process.env.WORKERS || '1'}`,
     }],
      ],
   }
 )
+

@@ -122,6 +122,44 @@ jobs:
         path: azure-report/
         retention-days: 30
 
+    # Per-shard BLOB report (raw results) — only used by the merge-reports job below.
+    # if: !cancelled() so a FAILED shard's results still reach the merged report.
+    - uses: actions/upload-artifact@v4
+      if: ${{ !cancelled() }}
+      with:
+        name: blob-report-${{ matrix.shardIndex }}
+        path: blob-report/
+        retention-days: 1
+
+  # Combines the 4 shards' blob reports into ONE HTML report.
+  # needs: [test] = wait until all 4 shards finish. if: !cancelled() = merge even if some failed.
+  merge-reports:
+    name: Merge reports
+    if: ${{ !cancelled() }}
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 24
+    - name: Install dependencies
+      run: npm ci
+    # merge-multiple: true = all blob-report-1..4 land in ONE folder (file names are per-shard)
+    - name: Download all shard blob reports
+      uses: actions/download-artifact@v4
+      with:
+        path: all-blob-reports
+        pattern: blob-report-*
+        merge-multiple: true
+    - name: Merge into one HTML report
+      run: npx playwright merge-reports --reporter html ./all-blob-reports
+    - uses: actions/upload-artifact@v4
+      with:
+        name: playwright-report-merged
+        path: playwright-report/
+        retention-days: 30
+
   api-tests:
     name: API Tests
     timeout-minutes: 30
@@ -162,5 +200,3 @@ jobs:
         name: api-test-report
         path: playwright-report/
         retention-days: 30
-
-        
