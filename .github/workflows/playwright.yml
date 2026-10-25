@@ -105,7 +105,10 @@ jobs:
     # Original command only had --workers. Added --shard=X/Y so each of the 4
     # parallel jobs above only runs its own 1/4th slice of the 104 tests
     # (~26 tests per shard), instead of all 4 jobs redundantly running all 104.
-      run: npx playwright test --config=playwright.service.config.ts --workers=${{ inputs.workers }} --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+    # --project=chromium = run ONLY the UI project (its 'setup' dependency runs automatically).
+    # Without it the 'api' project's specs also ran in these shards, where TEST_EMAIL/TEST_PASSWORD
+    # are not set -> no auth-state.json -> 11 API failures + 32 skipped. API tests run in the api-tests job.
+      run: npx playwright test --config=playwright.service.config.ts --project=chromium --workers=${{ inputs.workers }} --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
     # Step 6 — Upload test report as artifact to GitHub
     # The if statement means-> upload report even if tests failed
     # retention-days: 30 = report stays available for 30 days

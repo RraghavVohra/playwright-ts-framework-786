@@ -1,4 +1,4 @@
-import { Page, Locator } from '@playwright/test';
+import { Page, Locator, expect } from '@playwright/test';
 
 // Banners is one of four asset types (Brochure, Video, Social Post, Banners) that share
 // the same "New Asset" wizard — this page object only covers the Banners path through it.
@@ -15,6 +15,8 @@ export class BannersPage {
   // file input on this page so a plain type selector is safe
   private assetFileInput: Locator;
   private nextButton: Locator;
+  // Red toast shown when a non-image file is picked on the upload step
+  private uploadRejectedToast: Locator;
 
   // Global Asset Details page
   private nameInput: Locator;
@@ -61,6 +63,7 @@ export class BannersPage {
 
     this.assetFileInput = page.locator('input[type="file"]');
     this.nextButton = page.getByRole('button', { name: 'Next' });
+    this.uploadRejectedToast = page.getByText(/Only jpg, jpeg and png images are allowed/);
 
     this.nameInput = page.getByRole('textbox', { name: 'Name' });
     this.descriptionInput = page.getByRole('textbox', { name: 'Description' });
@@ -104,6 +107,14 @@ export class BannersPage {
 
   async clickNext(): Promise<void> {
     await this.nextButton.click();
+  }
+
+  // The asset upload step now validates the file format: anything other than jpg/jpeg/png
+  // shows a red toast ("Only jpg, jpeg and png images are allowed.") and keeps Next disabled.
+  // The toast is short-lived, so call this right after uploadAssetImage().
+  async assertUploadRejected(): Promise<void> {
+    await expect(this.uploadRejectedToast).toBeVisible();
+    await expect(this.nextButton).toBeDisabled();
   }
 
 
@@ -213,3 +224,4 @@ export class BannersPage {
     return this.page.getByTitle(title);
   }
 }
+
