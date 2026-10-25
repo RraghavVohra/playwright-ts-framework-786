@@ -151,6 +151,7 @@ export class PushNotificationPage {
 
     // On prod: wait for full page load once before the retry loop (KTMenu requirement)
     if (ENV === 'prod') {
+      // eslint-disable-next-line playwright/no-networkidle -- prod-only, KTMenu needs a full load; no stable signal yet (revisit in audit point 06)
       await this.page.waitForLoadState('networkidle');
       await this.actionsButton.scrollIntoViewIfNeeded();
     }
@@ -175,13 +176,23 @@ export class PushNotificationPage {
   async openActionsMenu(): Promise<void> {
     await this.navigateToPushNotificationList();
     if (ENV === 'prod') {
+      // eslint-disable-next-line playwright/no-networkidle -- prod-only, KTMenu needs a full load; no stable signal yet (revisit in audit point 06)
       await this.page.waitForLoadState('networkidle');
       await this.actionsButton.scrollIntoViewIfNeeded();
-      await this.actionsButton.dispatchEvent('click');
-      await this.page.waitForTimeout(1000);
-    } else {
-      await this.actionsButton.click();
     }
+    // Same retry pattern as clickCreateAppNotification above: a single click can be lost
+    // while the page is still hydrating, so re-click until the menu is actually visible.
+    // This also replaces the old fixed 1s sleep with a wait on the real signal (menu open).
+    await expect(async () => {
+      if (!(await this.createAppNotificationOption.isVisible())) {
+        if (ENV === 'prod') {
+          await this.actionsButton.dispatchEvent('click');
+        } else {
+          await this.actionsButton.click();
+        }
+      }
+      await this.createAppNotificationOption.waitFor({ state: 'visible', timeout: 2000 });
+    }).toPass({ timeout: 30000 });
   }
 
 
@@ -196,6 +207,9 @@ export class PushNotificationPage {
 
   // Returns the text of all items in the open Actions dropdown
   async getActionMenuOptions(): Promise<string[]> {
+    // No extra wait here: openActionsMenu() already guarantees the Actions menu is open.
+    // actionsMenuOptions also matches OTHER hidden dropdowns on the page (e.g. the profile menu),
+    // so .first() would pick a hidden link. The isVisible() filter below keeps only the open menu.
     const elements = await this.actionsMenuOptions.all();
     const texts: string[] = [];
     for (const el of elements) {
@@ -436,3 +450,4 @@ export class PushNotificationPage {
     return `${day}/${month}/${year}`;
   }
 }
+
