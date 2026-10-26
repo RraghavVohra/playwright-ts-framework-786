@@ -28,3 +28,6 @@ desktop.ini
 
 # API session written by api-global-setup (token + cookies)
 auth-state.json
+
+# SonarQube scanner ka temp folder (scan chalane pe auto-generate hota hai)
+.scannerwork/
