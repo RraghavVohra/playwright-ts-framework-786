@@ -1,5 +1,6 @@
 import { test as setup, expect } from '@playwright/test';
-import { ENV, USER_EMAIL, USER_PASSWORD } from './utils/config';
+import { ENV, USER_EMAIL, USER_PASSWORD } from '../../utils/config';
+
 
 // 'setup' is just the name Playwright shows in the report for this step
 // It is not a regular test — it is a one-time login that runs before all tests
