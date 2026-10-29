@@ -1,0 +1,28 @@
+userName: ${BROWSERSTACK_USERNAME}
+accessKey: ${BROWSERSTACK_ACCESS_KEY}
+
+framework: playwright
+projectName: playwright-ts-framework
+buildName: local-smoke-run
+
+platforms:
+  - os: Windows
+    osVersion: 11
+    browserName: chrome
+    browserVersion: latest
+  - os: OS X
+    osVersion: Ventura
+    browserName: playwright-webkit
+    browserVersion: latest
+  - os: Windows
+    osVersion: 11
+    browserName: playwright-firefox
+    browserVersion: latest
+
+parallelsPerPlatform: 1
+browserstackLocal: false
+
+debug: true
+networkLogs: true
+consoleLogs: errors
+testObservability: true
