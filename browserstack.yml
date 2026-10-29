@@ -10,14 +10,23 @@ platforms:
     osVersion: 11
     browserName: chrome
     browserVersion: latest
-  - os: OS X
-    osVersion: Ventura
-    browserName: playwright-webkit
-    browserVersion: latest
-  - os: Windows
-    osVersion: 11
-    browserName: playwright-firefox
-    browserVersion: latest
+    playwrightConfigOptions:
+      setup:
+        - name: 'auth-setup'
+          testMatch: '**/auth.setup.ts'
+      use:
+        storageState: 'auth.json'
+
+  # Login green hone ke baad inhe wapas on karna (har platform mein
+  # same playwrightConfigOptions block chahiye hoga):
+  # - os: OS X
+  #   osVersion: Ventura
+  #   browserName: playwright-webkit
+  #   browserVersion: latest
+  # - os: Windows
+  #   osVersion: 11
+  #   browserName: playwright-firefox
+  #   browserVersion: latest
 
 parallelsPerPlatform: 1
 browserstackLocal: false
