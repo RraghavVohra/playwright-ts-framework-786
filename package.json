@@ -18,7 +18,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
-    "prepare": "husky"
+    "prepare": "husky",
+    "sonar": "npx @sonar/scan -Dsonar.host.url=http://localhost:9000"
   },
   "keywords": [],
   "author": "",
